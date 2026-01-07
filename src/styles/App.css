@@ -122,11 +122,44 @@ h2 {
   opacity: 0.9;
 }
 
+.primary-btn {
+  padding: 0.8rem 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.card {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--bg-color);
+  border: 1px solid var(--gray-200);
+}
+
 /* Utils */
 .error-message {
   color: #ff6b6b;
   font-size: 0.9rem;
   margin: 0;
+}
+
+.success-message {
+  color: #40c057;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  padding: 0.8rem;
+  background-color: #d3f9d8;
+  border-radius: 8px;
 }
 
 .status {

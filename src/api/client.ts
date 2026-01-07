@@ -1,22 +1,3 @@
-const BASE_URL = '';
-
-// Types
-interface SignupRequest {
-    name: string;
-    email: string;
-    password: string;
-}
-
-interface SignupResponse {
-    id: string;
-    name: string;
-    email: string;
-}
-
-interface ErrorResponse {
-    detail: string;
-}
-
 // Types
 interface SignupRequest {
     name: string;
@@ -36,7 +17,7 @@ interface ErrorResponse {
 
 export const checkBackendStatus = async (): Promise<{ status: string; ok: boolean }> => {
     try {
-        const response = await fetch(`${BASE_URL}/health`);
+        const response = await fetch('/health');
         if (response.status === 200) {
             return { status: 'Success', ok: true };
         } else {
@@ -50,7 +31,7 @@ export const checkBackendStatus = async (): Promise<{ status: string; ok: boolea
 
 export const signup = async (data: SignupRequest): Promise<{ success: boolean; data?: SignupResponse; error?: string }> => {
     try {
-        const response = await fetch(`${BASE_URL}/api/users/signup`, {
+        const response = await fetch('/api/users/signup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
