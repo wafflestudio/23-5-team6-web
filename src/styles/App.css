@@ -1,59 +1,150 @@
+:root {
+  --primary-color: #3b5bdb;
+  --text-color: #333;
+  --bg-color: #fff;
+  --gray-200: #e9ecef;
+  --gray-500: #adb5bd;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text-color);
+  background: var(--bg-color);
 }
 
 .container {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  /* Mobile width constraint */
+  margin: 0 auto;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  /* Optional: distinct frame for desktop view */
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  min-height: 50vh;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
 }
 
-.card {
-  padding: 2em;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+.logo {
+  font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
-  transition: border-color 0.25s;
 }
 
-button:hover {
-  border-color: #646cff;
+.auth-buttons {
+  display: flex;
+  gap: 1rem;
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.text-btn {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0;
+}
+
+.text-btn.active {
+  font-weight: bold;
+}
+
+/* Content */
+.main-content,
+.auth-container {
+  padding: 2rem 1.5rem;
+  flex: 1;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.form-group input {
+  padding: 0.8rem;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color);
+}
+
+.submit-btn {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+/* Utils */
+.error-message {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .status {
   margin-top: 1rem;
   font-weight: bold;
-  font-size: 1.2rem;
 }
 
 .success {
-  color: #4caf50;
+  color: #40c057;
 }
 
 .error {
-  color: #f44336;
+  color: #fa5252;
 }
 
-@media (prefers-color-scheme: light) {
-  button {
-    background-color: #f9f9f9;
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .container {
+    box-shadow: none;
   }
 }
