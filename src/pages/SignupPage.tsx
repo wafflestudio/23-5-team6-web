@@ -39,8 +39,7 @@ export function SignupPage() {
         });
 
         if (result.success) {
-            alert('회원가입 성공!');
-            navigate('/login');
+            navigate('/login', { state: { message: '회원가입이 완료되었습니다. 로그인해주세요.' } });
         } else {
             setError(result.error || '회원가입에 실패했습니다.');
         }
