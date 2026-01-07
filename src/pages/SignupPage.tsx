@@ -74,6 +74,19 @@ export function SignupPage() {
                     </div>
 
                     <div className="form-group">
+                        <label htmlFor="email">이메일</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            placeholder="example@email.com"
+                        />
+                    </div>
+
+                    <div className="form-group">
                         <label htmlFor="password">비밀번호</label>
                         <input
                             type="password"
@@ -97,19 +110,6 @@ export function SignupPage() {
                             onChange={handleChange}
                             required
                             placeholder="다시 한번 입력하세요"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="email">이메일</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            placeholder="example@email.com"
                         />
                     </div>
 

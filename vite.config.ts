@@ -15,7 +15,10 @@ export default defineConfig({
       '/api': {
         target: 'http://3.34.178.145:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/health': {
+        target: 'http://3.34.178.145:8000',
+        changeOrigin: true,
       },
     },
   },

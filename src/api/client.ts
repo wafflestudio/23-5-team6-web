@@ -1,4 +1,21 @@
-const BASE_URL = import.meta.env.PROD ? 'http://3.34.178.145:8000' : '/api';
+const BASE_URL = '';
+
+// Types
+interface SignupRequest {
+    name: string;
+    email: string;
+    password: string;
+}
+
+interface SignupResponse {
+    id: string;
+    name: string;
+    email: string;
+}
+
+interface ErrorResponse {
+    detail: string;
+}
 
 // Types
 interface SignupRequest {
