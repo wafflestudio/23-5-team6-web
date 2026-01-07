@@ -17,6 +17,23 @@ interface ErrorResponse {
     detail: string;
 }
 
+// Types
+interface SignupRequest {
+    name: string;
+    email: string;
+    password: string;
+}
+
+interface SignupResponse {
+    id: string;
+    name: string;
+    email: string;
+}
+
+interface ErrorResponse {
+    detail: string;
+}
+
 export const checkBackendStatus = async (): Promise<{ status: string; ok: boolean }> => {
     try {
         const response = await fetch(`${BASE_URL}/health`);
