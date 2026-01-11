@@ -12,18 +12,20 @@ import { AdminFAB } from '@/components/AdminFAB';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/admin/signup" element={<AdminSignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/clubs" element={<ClubListPage />} />
-          <Route path="/clubs/:clubId/items" element={<ItemListPage />} />
-        </Routes>
-        <AdminFAB />
-        <ToastContainer />
-      </Router>
+      <div className="app-wrapper">
+        <Router>
+          <Routes>
+            <Route path="/" element={<MainPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/admin/signup" element={<AdminSignupPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/clubs" element={<ClubListPage />} />
+            <Route path="/clubs/:clubId/items" element={<ItemListPage />} />
+          </Routes>
+          <AdminFAB />
+          <ToastContainer />
+        </Router>
+      </div>
     </AuthProvider>
   );
 }
