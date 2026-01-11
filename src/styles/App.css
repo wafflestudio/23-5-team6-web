@@ -43,7 +43,7 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: #0f172a;
+  background: transparent;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
@@ -71,9 +71,8 @@ body::before {
   min-height: 100dvh;
   display: flex;
   justify-content: center;
-  background-color: #0f172a;
+  background-color: transparent;
   /* iOS Safe Area 패딩 */
-  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -102,6 +101,7 @@ body::before {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
+  padding-top: calc(1.25rem + env(safe-area-inset-top)); /* Handle Notch */
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
 }
