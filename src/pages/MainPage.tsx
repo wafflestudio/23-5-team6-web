@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { checkBackendStatus } from '@/api/client';
+import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
 export function MainPage() {
     const [status, setStatus] = useState<string>('');
-    const navigate = useNavigate();
+    const [, forceUpdate] = useState({});
 
     const handleCheck = async () => {
         const result = await checkBackendStatus();
@@ -14,13 +14,7 @@ export function MainPage() {
 
     return (
         <div className="container">
-            <header className="app-header">
-                <div className="logo">자산관리</div>
-                <div className="auth-buttons">
-                    <button className="text-btn" onClick={() => navigate('/signup')}>회원가입</button>
-                    <button className="text-btn" onClick={() => navigate('/login')}>로그인</button>
-                </div>
-            </header>
+            <Header onLogout={() => forceUpdate({})} />
 
             <main className="main-content">
                 <h1>Club Asset Management</h1>

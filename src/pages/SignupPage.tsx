@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signup } from '@/api/client';
+import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
 export function SignupPage() {
@@ -47,13 +48,7 @@ export function SignupPage() {
 
     return (
         <div className="container">
-            <header className="app-header">
-                <div className="logo" onClick={() => navigate('/')}>자산관리</div>
-                <div className="auth-buttons">
-                    <button className="text-btn active">회원가입</button>
-                    <button className="text-btn" onClick={() => navigate('/login')}>로그인</button>
-                </div>
-            </header>
+            <Header />
 
             <main className="auth-container">
                 <h2>회원가입</h2>

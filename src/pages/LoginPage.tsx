@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { login } from '@/api/client';
+import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
 export function LoginPage() {
@@ -10,6 +12,7 @@ export function LoginPage() {
         password: '',
     });
     const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(false);
     const successMessage = (location.state as { message?: string })?.message;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,21 +23,26 @@ export function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
-        // 백엔드 준비되면 수정
-        console.log('Login attempt:', formData.email);
-        setError('로그인할 마음의 준비가 안됨');
+        const result = await login({
+            email: formData.email,
+            password: formData.password,
+        });
+
+        setIsLoading(false);
+
+        if (result.success) {
+            // 로그인 성공 시 메인 페이지로 이동
+            navigate('/', { state: { message: '로그인 성공!' } });
+        } else {
+            setError(result.error || '로그인에 실패했습니다.');
+        }
     };
 
     return (
         <div className="container">
-            <header className="app-header">
-                <div className="logo" onClick={() => navigate('/')}>자산관리</div>
-                <div className="auth-buttons">
-                    <button className="text-btn" onClick={() => navigate('/signup')}>회원가입</button>
-                    <button className="text-btn active">로그인</button>
-                </div>
-            </header>
+            <Header />
 
             <main className="auth-container">
                 <h2>로그인</h2>
@@ -68,7 +76,9 @@ export function LoginPage() {
 
                     {error && <p className="error-message">{error}</p>}
 
-                    <button type="submit" className="submit-btn">로그인</button>
+                    <button type="submit" className="submit-btn" disabled={isLoading}>
+                        {isLoading ? '로그인 중...' : '로그인'}
+                    </button>
                 </form>
             </main>
         </div>
