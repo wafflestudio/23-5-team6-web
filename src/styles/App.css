@@ -97,6 +97,9 @@ body::before {
 
 /* Header */
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -104,6 +107,8 @@ body::before {
   padding-top: calc(1.25rem + env(safe-area-inset-top)); /* Handle Notch */
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .logo {
