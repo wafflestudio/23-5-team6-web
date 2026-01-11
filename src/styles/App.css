@@ -26,12 +26,11 @@
 }
 
 /* ===== Mobile App Layout: Native Scrolling ===== */
-/* ===== Mobile App Layout: Native Scrolling ===== */
 html {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100%;
+  min-height: 100dvh;
   /* Fallback color matching the top of the gradient */
   background-color: #0f172a;
 }
@@ -41,7 +40,6 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  /* overflow: hidden 제거하여 네이티브 스크롤 활성화 */
   background: transparent;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
