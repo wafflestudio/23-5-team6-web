@@ -31,7 +31,10 @@ html {
   padding: 0;
   width: 100%;
   height: 100%; /* Pass height control to body */
-  background: transparent;
+  
+  /* Set base color to match gradient start. 
+     This prevents white/black flashes during overscroll on some iOS versions. */
+  background-color: #0f172a;
   
   /* Enable native pull-to-refresh */
   overscroll-behavior-y: auto;
