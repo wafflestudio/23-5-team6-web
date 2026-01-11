@@ -30,11 +30,8 @@ html {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%; /* Pass height control to body */
-  
-  /* Set base color to match gradient start. 
-     This prevents white/black flashes during overscroll on some iOS versions. */
-  background-color: #0f172a;
+  height: 100%;
+  background-color: transparent; /* Transparent so fixed bg shows */
   
   /* Enable native pull-to-refresh */
   overscroll-behavior-y: auto;
@@ -45,14 +42,8 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  /* 100dvh ensures it fills the visible screen including address bar changes */
   min-height: 100dvh; 
-  
-  /* Apply gradient to body - this covers the notch area because of viewport-fit=cover */
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  background-attachment: scroll; /* Scroll is safer than fixed on mobile */
-  animation: gradientShift 15s ease infinite;
+  background-color: transparent; /* Transparent so fixed bg shows */
 
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -61,6 +52,32 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+/* 
+   Global Fixed Background 
+   This is the definitive way to ensure the background covers everything:
+   - Notch / Status Bar
+   - Bottom Home Indicator
+   - Overscroll (Rubber banding) areas
+   It stays fixed while the body contents scroll over it.
+*/
+#global-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: -1;
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  pointer-events: none;
+}
+
+/* 
+   Content Wrapper 
+   Just a layout shell now. We REMOVED global padding so background/header can reach edges.
+*/
 
 /* 
    Content Wrapper 
