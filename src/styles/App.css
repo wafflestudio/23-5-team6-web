@@ -26,16 +26,14 @@
 }
 
 /* ===== Mobile App Layout: Native Scrolling ===== */
+/* ===== Mobile App Layout: Native Scrolling ===== */
 html {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100%;
-  /* 그라데이션 배경을 html에 적용 - Safe Area까지 확장 */
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  background-attachment: fixed;
-  animation: gradientShift 15s ease infinite;
+  /* Fallback color matching the top of the gradient */
+  background-color: #0f172a;
 }
 
 body {
@@ -43,16 +41,32 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  /* overflow: hidden 제거하여 네이티브 스크롤 활성화 (당겨서 새로고침 가능) */
+  /* overflow: hidden 제거하여 네이티브 스크롤 활성화 */
   background: transparent;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
+  position: relative;
+}
+
+/* Fixed background element to cover entire viewport including overscroll */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  z-index: -1;
+  /* iOS fix for fixed background */
+  transform: translateZ(0);
 }
 
 #root {
   width: 100%;
-  /* height: 100% 대신 min-height 사용 */
   min-height: 100vh;
   display: flex;
   justify-content: center;
