@@ -1,52 +1,58 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { login } from '@/api/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useForm } from '@/hooks/useForm';
+import { Header } from '@/components/Header';
 import '@/styles/App.css';
+
+interface LoginFormValues {
+    email: string;
+    password: string;
+}
+
+const initialValues: LoginFormValues = {
+    email: '',
+    password: '',
+};
 
 export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
+    const { refreshAuth } = useAuth();
+    const { values, error, isLoading, handleChange, handleSubmit, setError } = useForm({
+        initialValues,
     });
-    const [error, setError] = useState<string>('');
     const successMessage = (location.state as { message?: string })?.message;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    const onSubmit = async () => {
+        const result = await login({
+            email: values.email,
+            password: values.password,
+        });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-
-        // 백엔드 준비되면 수정
-        console.log('Login attempt:', formData.email);
-        setError('로그인할 마음의 준비가 안됨');
+        if (result.success) {
+            refreshAuth();
+            navigate('/', { state: { message: '로그인 성공!' } });
+        } else {
+            setError(result.error || '로그인에 실패했습니다.');
+        }
     };
 
     return (
         <div className="container">
-            <header className="app-header">
-                <div className="logo" onClick={() => navigate('/')}>자산관리</div>
-                <div className="auth-buttons">
-                    <button className="text-btn" onClick={() => navigate('/signup')}>회원가입</button>
-                    <button className="text-btn active">로그인</button>
-                </div>
-            </header>
+            <Header />
 
             <main className="auth-container">
                 <h2>로그인</h2>
                 {successMessage && <p className="success-message">{successMessage}</p>}
-                <form onSubmit={handleSubmit} className="auth-form">
+                <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     <div className="form-group">
                         <label htmlFor="email">이메일</label>
                         <input
                             type="email"
                             id="email"
                             name="email"
-                            value={formData.email}
+                            value={values.email}
                             onChange={handleChange}
                             required
                             placeholder="example@email.com"
@@ -59,7 +65,7 @@ export function LoginPage() {
                             type="password"
                             id="password"
                             name="password"
-                            value={formData.password}
+                            value={values.password}
                             onChange={handleChange}
                             required
                             placeholder="비밀번호를 입력하세요"
@@ -68,7 +74,9 @@ export function LoginPage() {
 
                     {error && <p className="error-message">{error}</p>}
 
-                    <button type="submit" className="submit-btn">로그인</button>
+                    <button type="submit" className="submit-btn" disabled={isLoading}>
+                        {isLoading ? '로그인 중...' : '로그인'}
+                    </button>
                 </form>
             </main>
         </div>
