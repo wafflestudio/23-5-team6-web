@@ -12,6 +12,7 @@ import { AdminFAB } from '@/components/AdminFAB';
 function App() {
   return (
     <AuthProvider>
+      <div id="global-background" />
       <div className="app-wrapper">
         <Router>
           <Routes>
