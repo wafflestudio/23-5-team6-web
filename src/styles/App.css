@@ -32,9 +32,7 @@ html {
   width: 100%;
   height: 100%;
   min-height: 100dvh;
-  /* Fallback color matching the top of the gradient */
-  background-color: #0f172a;
-  /* Prevent scroll chaining but allow rubber banding if needed */
+  background-color: #0f172a; /* Fallback */
   overscroll-behavior-y: none;
 }
 
@@ -43,7 +41,7 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background: transparent;
+  background-color: transparent !important; /* Force transparency */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
@@ -61,9 +59,9 @@ body::before {
   background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
-  z-index: -1;
-  /* iOS fix for fixed background */
-  transform: translateZ(0);
+  z-index: -1; /* Behind content */
+  transform: translateZ(0); /* Hardware accel */
+  pointer-events: none;
 }
 
 #root {
@@ -72,6 +70,8 @@ body::before {
   display: flex;
   justify-content: center;
   background-color: transparent;
+  position: relative;
+  z-index: 1; /* Ensure content is above background */
   /* iOS Safe Area 패딩 */
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
