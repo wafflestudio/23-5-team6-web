@@ -30,13 +30,19 @@ html {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
   min-height: 100dvh;
-  /* Set a base background color that matches the gradient's dark tone
-     so overscroll (rubber-banding) areas look consistent */
-  background-color: #0f172a;
-  /* Allow native pull-to-refresh behavior */
+  
+  /* Enable native pull-to-refresh and scrolling */
   overscroll-behavior-y: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Apply gradient directly to html to cover notch and overscroll areas */
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
+  background-size: 400% 400%;
+  /* 'fixed' attachment keeps it static relative to viewport (like a native app background) */
+  background-attachment: fixed;
+  animation: gradientShift 15s ease infinite;
 }
 
 body {
@@ -44,28 +50,16 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: transparent !important; /* Force transparency */
+  background-color: transparent !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
   position: relative;
+  /* Ensure body allows scrolling */
+  overflow-y: visible; 
 }
 
-/* Fixed background element to cover entire viewport including overscroll */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100dvh; /* Ensure it covers the full dynamic viewport height */
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-  z-index: -1; /* Behind content */
-  transform: translateZ(0); /* Hardware accel */
-  pointer-events: none;
-}
+/* Fixed background element removed - using html background instead */
 
 #root {
   width: 100%;
