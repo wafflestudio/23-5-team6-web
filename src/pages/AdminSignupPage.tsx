@@ -1,52 +1,58 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { signup } from '@/api/client';
+import { adminSignup } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/hooks/useForm';
 import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
-interface SignupFormValues {
+interface AdminSignupFormValues {
     name: string;
     email: string;
     password: string;
     confirmPassword: string;
+    clubName: string;
 }
 
-const initialValues: SignupFormValues = {
+const initialValues: AdminSignupFormValues = {
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    clubName: '',
 };
 
-const validateSignup = (values: SignupFormValues): string | null => {
+const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
     if (values.password !== values.confirmPassword) {
         return '비밀번호가 일치하지 않습니다.';
     }
     if (values.password.length < 8) {
         return '비밀번호는 8자 이상이어야 합니다.';
     }
+    if (!values.clubName.trim()) {
+        return '동아리 이름을 입력해주세요.';
+    }
     return null;
 };
 
-export function SignupPage() {
+export function AdminSignupPage() {
     const navigate = useNavigate();
     const { refreshAuth } = useAuth();
     const { values, error, handleChange, handleSubmit, setError } = useForm({
         initialValues,
-        validate: validateSignup,
+        validate: validateAdminSignup,
     });
 
     const onSubmit = async () => {
-        const result = await signup({
+        const result = await adminSignup({
             name: values.name,
             email: values.email,
-            password: values.password
+            password: values.password,
+            club_name: values.clubName
         });
 
         if (result.success) {
             refreshAuth();
-            navigate('/login', { state: { message: '회원가입이 완료되었습니다. 로그인해주세요.' } });
+            navigate('/login', { state: { message: '운영자 회원가입이 완료되었습니다. 로그인해주세요.' } });
         } else {
             setError(result.error || '회원가입에 실패했습니다.');
         }
@@ -57,7 +63,8 @@ export function SignupPage() {
             <Header />
 
             <main className="auth-container">
-                <h2>회원가입</h2>
+                <h2>운영자 회원가입</h2>
+                <p className="admin-signup-subtitle">동아리 운영자로 가입하시면 동아리를 관리할 수 있습니다.</p>
                 <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     <div className="form-group">
                         <label htmlFor="name">이름</label>
@@ -83,6 +90,19 @@ export function SignupPage() {
                             onChange={handleChange}
                             required
                             placeholder="example@email.com"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="clubName">동아리 이름</label>
+                        <input
+                            type="text"
+                            id="clubName"
+                            name="clubName"
+                            value={values.clubName}
+                            onChange={handleChange}
+                            required
+                            placeholder="동아리 이름을 입력하세요"
                         />
                     </div>
 
@@ -115,11 +135,11 @@ export function SignupPage() {
 
                     {error && <p className="error-message">{error}</p>}
 
-                    <button type="submit" className="submit-btn">회원가입</button>
+                    <button type="submit" className="submit-btn">운영자로 가입하기</button>
                 </form>
 
-                <p className="auth-switch admin-signup-link">
-                    동아리를 운영하시나요? <Link to="/admin/signup">운영자 회원가입</Link>
+                <p className="auth-switch">
+                    일반 회원이신가요? <Link to="/signup">일반 회원가입</Link>
                 </p>
             </main>
         </div>

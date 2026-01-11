@@ -1,18 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { isLoggedIn, logout } from '@/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface HeaderProps {
-    onLogout?: () => void;
-}
-
-export function Header({ onLogout }: HeaderProps) {
+export function Header() {
     const navigate = useNavigate();
     const location = useLocation();
-    const loggedIn = isLoggedIn();
+    const { isLoggedIn, userName, logout } = useAuth();
 
     const handleLogout = async () => {
         await logout();
-        onLogout?.();
         navigate('/login');
     };
 
@@ -22,13 +17,13 @@ export function Header({ onLogout }: HeaderProps) {
         <header className="app-header">
             <div className="logo" onClick={() => navigate('/')}>자산관리</div>
             <div className="auth-buttons">
-                {loggedIn ? (
+                {isLoggedIn ? (
                     <>
                         <button
-                            className={`text-btn ${isActive('/mypage') ? 'active' : ''}`}
+                            className={`text-btn user-name-btn ${isActive('/mypage') ? 'active' : ''}`}
                             onClick={() => navigate('/mypage')}
                         >
-                            마이페이지
+                            {userName ? `${userName}님` : '마이페이지'}
                         </button>
                         <button className="text-btn" onClick={handleLogout}>
                             로그아웃
