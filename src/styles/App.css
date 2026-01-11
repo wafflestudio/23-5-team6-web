@@ -31,18 +31,13 @@ html {
   padding: 0;
   width: 100%;
   min-height: 100dvh;
+  /* Ensure html is transparent so the fixed background shows through */
+  background: transparent;
   
   /* Enable native pull-to-refresh and scrolling */
   overscroll-behavior-y: auto;
   overflow-y: auto;
   overflow-x: hidden;
-
-  /* Apply gradient directly to html to cover notch and overscroll areas */
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  /* 'fixed' attachment keeps it static relative to viewport (like a native app background) */
-  background-attachment: fixed;
-  animation: gradientShift 15s ease infinite;
 }
 
 body {
@@ -59,7 +54,28 @@ body {
   overflow-y: visible; 
 }
 
-/* Fixed background element removed - using html background instead */
+/* 
+   Background Strategy:
+   Use html::before with position: fixed. 
+   This stays static (doesn't scroll) and covers the viewport (including notch).
+   Because it's on html, it sits at the root level.
+*/
+html::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  
+  z-index: -1; /* Behind everything */
+  transform: translateZ(0); /* Hardware accel */
+  pointer-events: none;
+}
 
 #root {
   width: 100%;
