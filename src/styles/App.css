@@ -25,17 +25,32 @@
   }
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
+/* Global reset & Mobile optimization */
+html {
+  background-color: var(--bg-color);
+  overscroll-behavior: none;
+  /* Prevents rubber-banding on iOS */
+  height: 100%;
+}
+
+body {
   margin: 0;
   padding: 0;
+  width: 100%;
+  height: 100%;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
   background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
   background-size: 400% 400%;
+  background-attachment: fixed;
+  /* Ensures gradient doesn't scroll with content */
   animation: gradientShift 15s ease infinite;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
 }
 
 .container {
@@ -44,7 +59,8 @@
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: 100dvh;
+  /* Mobile viewport friendly */
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
