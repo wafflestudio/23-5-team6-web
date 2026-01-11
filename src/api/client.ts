@@ -79,7 +79,7 @@ const TOKEN_KEYS = {
 };
 
 // 메모리 캐시 (추가 보안 레이어)
-let memoryTokenCache: { access: string | null; refresh: string | null; userName: string | null; userType: number | null } = {
+const memoryTokenCache: { access: string | null; refresh: string | null; userName: string | null; userType: number | null } = {
     access: null,
     refresh: null,
     userName: null,
@@ -171,7 +171,7 @@ export const isLoggedIn = (): boolean => {
 };
 
 // Toast 알림 함수 - Toast 컴포넌트와 연동
-import { showToast } from '@/components/Toast';
+import { showToast } from '@/utils/toast';
 
 export const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     showToast(message, type);
