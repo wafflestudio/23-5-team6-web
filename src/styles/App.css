@@ -42,6 +42,9 @@ html {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
+
+  /* pull-to-refresh 허용, 하단 바운스는 막음 */
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -128,8 +131,8 @@ body::before {
 /* 4. ROOT: 실제 컨텐츠 영역 */
 #root {
   width: 100%;
+  /* 컨텐츠가 넘칠 때만 스크롤, 아니면 딱 맞게 */
   min-height: 100vh;
-  /* d-vh 대신 vh 사용 (iOS 흔들림 방지) */
 
   display: flex;
   justify-content: center;
@@ -141,7 +144,6 @@ body::before {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 
-  /* 불필요한 스크롤 방지를 위해 overflow 제어 */
   overflow-x: hidden;
 }
 
@@ -150,22 +152,24 @@ body::before {
   flex-direction: column;
   width: 100%;
   max-width: 480px;
-  /* min-height 사용 */
-  min-height: 100%;
+  /* 컨텐츠에 맞추되 최소 화면 높이 보장 */
+  min-height: 100vh;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid var(--glass-border);
   border-right: 1px solid var(--glass-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  /* overflow: hidden 제거 */
 }
 
-/* Header - 노치 영역까지 배경 확장 */
+/* Header - 항상 상단 고정 (스크롤해도 따라다님) */
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -217,10 +221,12 @@ body::before {
   background: var(--glass-bg);
 }
 
-/* Content */
+/* Content - 헤더가 fixed이므로 상단 여백 필요 */
 .main-content,
 .auth-container {
   padding: 2rem 1.5rem;
+  /* 헤더 높이(약 60px) + 노치 영역만큼 상단 여백 */
+  padding-top: calc(5rem + env(safe-area-inset-top));
   flex: 1;
 }
 
