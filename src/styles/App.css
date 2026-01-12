@@ -31,9 +31,13 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  
+
+  background-color: #0f172a;
+
   /* Enable native pull-to-refresh */
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: none;
+  overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -41,39 +45,34 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100dvh; 
-  
-  /* Safe Area Padding for Content */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-
+  min-height: 100%;
+  background-color: transparent !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--text-color);
-  
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: transparent;
+  position: relative;
+  overflow-y: visible;
 }
 
-/* 
-   Fixed Background via Pseudo-element 
-   As requested: covers the screen, fixed position, z-index -1.
-*/
+
 body::before {
   content: "";
   position: fixed;
+  /* 화면에 딱 달라붙게 만듦 안된다고아오씨하*/
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  
-  /* Applying the project's animated gradient instead of a static image */
+  /* viewport 높이만큼 꽉 채움 */
+
+  /* 기존 그라디언트와 애니메이션을 여기로 이동 */
   background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
-  
-  z-index: -1; /* Send behind content */
+
+  z-index: -1;
+  /* 콘텐츠 뒤로 보내기 */
+
 }
 
 /* 
@@ -101,10 +100,10 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   /* Standard Padding */
   padding: 1.25rem 1.5rem;
-  
+
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -126,11 +125,22 @@ body::before {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Remove old #root styles that might conflict */
 #root {
   width: 100%;
+  /* d-vh는 동적이라 iOS에서 꿀렁일 수 있습니다. 
+     배경이 고정되었으므로 min-height: 100vh로도 충분합니다. */
+  min-height: 100vh;
   display: flex;
   justify-content: center;
+  background-color: transparent;
+  position: relative;
+  z-index: 1;
+
+  /* Safe Area 유지 */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
 }
 
 .container {
@@ -158,7 +168,8 @@ body::before {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  padding-top: calc(1.25rem + env(safe-area-inset-top)); /* Handle Notch */
+  padding-top: calc(1.25rem + env(safe-area-inset-top));
+  /* Handle Notch */
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
