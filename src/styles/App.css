@@ -36,53 +36,44 @@
   padding: 0;
 }
 
-/* 2. HTML - 배경 그라데이션 직접 적용 */
-html {
-  min-height: 100%;
-  overflow-x: hidden;
-
-  /* 그라데이션 배경 직접 적용 */
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  background-attachment: fixed;
-  animation: gradientShift 15s ease infinite;
-}
-
-/* 3. BODY */
+/* 2. HTML & BODY - 흰색 배경 */
+html,
 body {
-  min-height: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--text-color);
-  -webkit-font-smoothing: antialiased;
-  background: transparent;
+  height: 100%;
   overflow-x: hidden;
+  background: #ffffff;
 }
 
-/* 5. ROOT - 중앙 정렬 컨테이너 */
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 3. ROOT - 정확히 화면 높이 */
 #root {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  /* 좌우 safe-area만 적용 (상단은 헤더, 하단은 container가 처리) */
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* 6. CONTAINER - 메인 컨텐츠 래퍼 */
-.container {
-  width: 100%;
-  max-width: 480px;
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  background: transparent;
-  border-left: 1px solid var(--glass-border);
-  border-right: 1px solid var(--glass-border);
-  /* 하단 safe-area */
+  align-items: center;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 7. HEADER - 상단 고정 네비게이션 */
+/* 4. CONTAINER - 컨텐츠 영역 */
+.container {
+  width: 100%;
+  max-width: 480px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* 5. HEADER - 노치까지 완전히 덮는 고정 헤더 */
 .app-header {
   position: fixed;
   top: 0;
@@ -90,21 +81,27 @@ body {
   right: 0;
   z-index: 100;
 
+  /* 노치 영역까지 배경 확장 */
+  padding-top: env(safe-area-inset-top);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 헤더 내부 컨텐츠 래퍼 */
+.app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  /* 노치 영역 포함 패딩 */
-  padding: 1rem 1.5rem;
-  padding-top: calc(1rem + env(safe-area-inset-top));
-
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--glass-border);
+  padding: env(safe-area-inset-top) 1.5rem 0 1.5rem;
 }
 
-/* 8. LOGO */
+/* 헤더 내부 요소들의 수직 패딩 */
+.app-header>* {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+/* 6. LOGO */
 .logo {
   font-weight: 700;
   font-size: 1.1rem;
@@ -115,7 +112,7 @@ body {
   background-clip: text;
 }
 
-/* 9. AUTH BUTTONS */
+/* 7. AUTH BUTTONS */
 .auth-buttons {
   display: flex;
   gap: 1rem;
@@ -143,12 +140,12 @@ body {
   background: var(--glass-bg);
 }
 
-/* Content - 헤더가 fixed이므로 상단 여백 필요 */
+/* 8. CONTENT - 헤더 높이만큼 상단 여백 */
 .main-content,
 .auth-container {
-  padding: 2rem 1.5rem;
-  /* 헤더 높이(약 60px) + 노치 영역만큼 상단 여백 */
-  padding-top: calc(5rem + env(safe-area-inset-top));
+  padding: 1.5rem;
+  /* 헤더 높이(약 56px) + 노치 영역 + 여유 */
+  padding-top: calc(4.5rem + env(safe-area-inset-top));
   flex: 1;
 }
 
