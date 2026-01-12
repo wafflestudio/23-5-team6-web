@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { checkBackendStatus } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Header } from '@/components/Header';
 import '@/styles/App.css';
 import { useState } from 'react';
 
@@ -17,7 +16,6 @@ export function MainPage() {
 
     return (
         <div className="container">
-            <Header />
 
             <main className="main-content">
                 <h1>Club Asset Management</h1>

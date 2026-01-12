@@ -2,7 +2,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/hooks/useForm';
-import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
 interface LoginFormValues {
@@ -40,7 +39,6 @@ export function LoginPage() {
 
     return (
         <div className="container">
-            <Header />
 
             <main className="auth-container">
                 <h2>로그인</h2>

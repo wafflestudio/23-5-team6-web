@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
 import { getClubItems } from '@/api/client';
 import { clubNames } from '@/mocks/data';
 import type { ClubItem } from '@/api/client';
@@ -65,7 +64,6 @@ export function ItemListPage() {
 
     return (
         <div className="container">
-            <Header />
 
             <main className="main-content">
                 <button className="back-btn" onClick={() => navigate('/clubs')}>

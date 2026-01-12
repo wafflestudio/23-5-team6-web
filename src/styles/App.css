@@ -25,165 +25,86 @@
   }
 }
 
-/* 1. 모든 요소의 사이즈 계산을 '테두리 포함'으로 변경 (가로 스크롤 방지 핵심) */
+/* ===== MOBILE LAYOUT SYSTEM ===== */
+
+/* 1. Box sizing 리셋 */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-/* 2. HTML: 스크롤 동작 제어 및 가로 넘침 방지 */
-html {
-  /* 🔥 중요: 여기에 색을 넣으면 노치 뒤가 탁해지거나 단색으로 덮입니다. 투명으로! */
-  background-color: transparent;
-
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
+}
+
+/* 2. HTML - 배경 그라데이션 직접 적용 */
+html {
+  min-height: 100%;
   overflow-x: hidden;
 
-  /* pull-to-refresh 허용, 하단 바운스는 막음 */
-  overscroll-behavior-y: contain;
+  /* 그라데이션 배경 직접 적용 */
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
+  background-size: 400% 400%;
+  background-attachment: fixed;
+  animation: gradientShift 15s ease infinite;
 }
 
+/* 3. BODY */
 body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
   min-height: 100%;
-  background-color: transparent;
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
-  position: relative;
+  background: transparent;
   overflow-x: hidden;
 }
 
-/* 배경 그라데이션 (방해물 없이 화면 전체 점령) */
-body::before {
-  content: "";
-  position: fixed;
-  /* 위아래 넉넉하게 덮어서 튕길 때도 그라데이션 유지 */
-  top: -10vh;
-  bottom: -10vh;
-  left: 0;
-  right: 0;
-
-  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #1e3a5f, #0f172a);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* 
-   Content Wrapper 
-   Just a layout shell now. We REMOVED global padding so background/header can reach edges.
-*/
-
-/* 
-   Content Wrapper 
-   Just a layout shell now. We REMOVED global padding so background/header can reach edges.
-*/
-.app-wrapper {
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-/* Header - Explicitly handles Top Notch Area */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  /* Standard Padding */
-  padding: 1.25rem 1.5rem;
-
-  border-bottom: 1px solid var(--glass-border);
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* Container handles bottom/side safe areas for main content */
-.container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 480px;
-  min-height: 100%;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-left: 1px solid var(--glass-border);
-  border-right: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-/* 4. ROOT: 실제 컨텐츠 영역 */
+/* 5. ROOT - 중앙 정렬 컨테이너 */
 #root {
-  width: 100%;
-  /* 컨텐츠가 넘칠 때만 스크롤, 아니면 딱 맞게 */
   min-height: 100vh;
-
   display: flex;
   justify-content: center;
-  position: relative;
-  z-index: 1;
-
-  /* 노치 대응 패딩 - top은 헤더가 처리하므로 제외 */
-  padding-bottom: env(safe-area-inset-bottom);
+  /* 좌우 safe-area만 적용 (상단은 헤더, 하단은 container가 처리) */
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-
-  overflow-x: hidden;
 }
 
+/* 6. CONTAINER - 메인 컨텐츠 래퍼 */
 .container {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   max-width: 480px;
-  /* 컨텐츠에 맞추되 최소 화면 높이 보장 */
   min-height: 100vh;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  background: transparent;
   border-left: 1px solid var(--glass-border);
   border-right: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  /* 하단 safe-area */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Header - 항상 상단 고정 (스크롤해도 따라다님) */
+/* 7. HEADER - 상단 고정 네비게이션 */
 .app-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 100;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  /* 기본 패딩 + 노치 영역 패딩 */
-  padding: 1.25rem 1.5rem;
-  padding-top: calc(1.25rem + env(safe-area-inset-top));
+  /* 노치 영역 포함 패딩 */
+  padding: 1rem 1.5rem;
+  padding-top: calc(1rem + env(safe-area-inset-top));
 
-  border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
 }
 
+/* 8. LOGO */
 .logo {
   font-weight: 700;
   font-size: 1.1rem;
@@ -194,6 +115,7 @@ body::before {
   background-clip: text;
 }
 
+/* 9. AUTH BUTTONS */
 .auth-buttons {
   display: flex;
   gap: 1rem;
