@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
 import { dummyClubs } from '@/mocks/data';
 import '@/styles/App.css';
 
@@ -12,7 +11,6 @@ export function ClubListPage() {
 
     return (
         <div className="container">
-            <Header />
 
             <main className="main-content">
                 <h2>내 동아리</h2>

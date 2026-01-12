@@ -2,7 +2,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { adminSignup } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/hooks/useForm';
-import { Header } from '@/components/Header';
 import '@/styles/App.css';
 
 interface AdminSignupFormValues {
@@ -60,7 +59,6 @@ export function AdminSignupPage() {
 
     return (
         <div className="container">
-            <Header />
 
             <main className="auth-container">
                 <h2>운영자 회원가입</h2>
