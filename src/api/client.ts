@@ -216,8 +216,7 @@ export const signup = async (data: SignupRequest): Promise<{ success: boolean; d
 
 // 관리자 회원가입 타입
 interface AdminSignupRequest {
-    name: string;
-    email: string;
+    username: string;
     password: string;
     club_name: string;
 }

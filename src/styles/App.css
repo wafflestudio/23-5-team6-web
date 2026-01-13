@@ -1,13 +1,13 @@
 :root {
   --primary-color: #6366f1;
   --primary-hover: #4f46e5;
-  --text-color: #f8fafc;
+  --text-color: #1e293b;
   --text-dark: #1e293b;
-  --bg-color: #0f172a;
-  --gray-200: #334155;
-  --gray-500: #64748b;
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --bg-color: #ffffff;
+  --gray-200: #e5e7eb;
+  --gray-500: #6b7280;
+  --glass-bg: rgba(0, 0, 0, 0.03);
+  --glass-border: #e5e7eb;
 }
 
 /* Animated gradient background */
@@ -130,14 +130,14 @@ body {
 }
 
 .text-btn:hover {
-  color: var(--text-color);
-  background: var(--glass-bg);
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .text-btn.active {
   font-weight: 600;
-  color: var(--text-color);
-  background: var(--glass-bg);
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 /* 8. CONTENT - 헤더 높이만큼 상단 여백 */
@@ -179,7 +179,7 @@ h2 {
   font-size: 1rem;
   outline: none;
   transition: all 0.2s ease;
-  background: rgba(255, 255, 255, 0.05);
+  background: #ffffff;
   color: var(--text-color);
 }
 
@@ -189,7 +189,7 @@ h2 {
 
 .form-group input:focus {
   border-color: var(--primary-color);
-  background: rgba(255, 255, 255, 0.08);
+  background: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
@@ -326,7 +326,7 @@ h2 {
 }
 
 .club-card:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(99, 102, 241, 0.05);
   transform: translateX(4px);
   border-color: var(--primary-color);
 }
@@ -374,7 +374,7 @@ h2 {
 }
 
 .item-card:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(99, 102, 241, 0.05);
   border-color: var(--primary-color);
 }
 
@@ -457,7 +457,7 @@ h2 {
 }
 
 .back-btn:hover {
-  color: var(--text-color);
+  color: var(--primary-color);
 }
 
 /* Loading & Empty states */
@@ -494,7 +494,7 @@ h2 {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(99, 102, 241, 0.08);
   border-color: var(--primary-color);
 }
 
@@ -568,7 +568,7 @@ h2 {
 }
 
 .modal-content {
-  background: var(--bg-color);
+  background: #ffffff;
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   width: 100%;
@@ -576,7 +576,7 @@ h2 {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
@@ -603,7 +603,7 @@ h2 {
 }
 
 .modal-close:hover {
-  color: var(--text-color);
+  color: var(--primary-color);
 }
 
 .modal-body {

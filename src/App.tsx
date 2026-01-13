@@ -8,6 +8,7 @@ import { AdminSignupPage } from '@/pages/AdminSignupPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ClubListPage } from '@/pages/ClubListPage';
 import { ItemListPage } from '@/pages/ItemListPage';
+import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { AdminFAB } from '@/components/AdminFAB';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/clubs" element={<ClubListPage />} />
           <Route path="/clubs/:clubId/items" element={<ItemListPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         </Routes>
         <AdminFAB />
         <ToastContainer />
@@ -32,3 +34,4 @@ function App() {
 }
 
 export default App;
+

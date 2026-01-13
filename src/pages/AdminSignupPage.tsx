@@ -5,24 +5,20 @@ import { useForm } from '@/hooks/useForm';
 import '@/styles/App.css';
 
 interface AdminSignupFormValues {
-    name: string;
-    email: string;
+    username: string;
     password: string;
-    confirmPassword: string;
     clubName: string;
 }
 
 const initialValues: AdminSignupFormValues = {
-    name: '',
-    email: '',
+    username: '',
     password: '',
-    confirmPassword: '',
     clubName: '',
 };
 
 const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
-    if (values.password !== values.confirmPassword) {
-        return '비밀번호가 일치하지 않습니다.';
+    if (!values.username.trim()) {
+        return '아이디를 입력해주세요.';
     }
     if (values.password.length < 8) {
         return '비밀번호는 8자 이상이어야 합니다.';
@@ -43,8 +39,7 @@ export function AdminSignupPage() {
 
     const onSubmit = async () => {
         const result = await adminSignup({
-            name: values.name,
-            email: values.email,
+            username: values.username,
             password: values.password,
             club_name: values.clubName
         });
@@ -65,42 +60,16 @@ export function AdminSignupPage() {
                 <p className="admin-signup-subtitle">동아리 운영자로 가입하시면 동아리를 관리할 수 있습니다.</p>
                 <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     <div className="form-group">
-                        <label htmlFor="name">이름</label>
+                        <label htmlFor="username">아이디</label>
                         <input
                             type="text"
-                            id="name"
-                            name="name"
-                            value={values.name}
+                            id="username"
+                            name="username"
+                            value={values.username}
                             onChange={handleChange}
                             required
                             maxLength={30}
-                            placeholder="이름을 입력하세요"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="email">이메일</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={values.email}
-                            onChange={handleChange}
-                            required
-                            placeholder="example@email.com"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="clubName">동아리 이름</label>
-                        <input
-                            type="text"
-                            id="clubName"
-                            name="clubName"
-                            value={values.clubName}
-                            onChange={handleChange}
-                            required
-                            placeholder="동아리 이름을 입력하세요"
+                            placeholder="아이디를 입력하세요"
                         />
                     </div>
 
@@ -119,15 +88,15 @@ export function AdminSignupPage() {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="confirmPassword">비밀번호 확인</label>
+                        <label htmlFor="clubName">동아리 이름</label>
                         <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            value={values.confirmPassword}
+                            type="text"
+                            id="clubName"
+                            name="clubName"
+                            value={values.clubName}
                             onChange={handleChange}
                             required
-                            placeholder="다시 한번 입력하세요"
+                            placeholder="동아리 이름을 입력하세요"
                         />
                     </div>
 

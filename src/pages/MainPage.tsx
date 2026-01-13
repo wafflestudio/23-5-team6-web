@@ -1,18 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { checkBackendStatus } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import '@/styles/App.css';
 import { useState } from 'react';
 
 export function MainPage() {
     const navigate = useNavigate();
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, isAdmin } = useAuth();
     const [status, setStatus] = useState<string>('');
 
     const handleCheck = async () => {
         const result = await checkBackendStatus();
         setStatus(result.status);
     };
+
+    // 관리자로 로그인한 경우 대시보드 표시
+    if (isLoggedIn && isAdmin) {
+        return <AdminDashboardPage />;
+    }
 
     return (
         <div className="container">
@@ -54,3 +60,4 @@ export function MainPage() {
         </div>
     );
 }
+
