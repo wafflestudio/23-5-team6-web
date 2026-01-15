@@ -1,13 +1,21 @@
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --text-color: #1e293b;
-  --text-dark: #1e293b;
+  /* New color theme */
+  --primary-color: #5979BA;
+  /* rgb(89, 121, 186) - Medium Blue */
+  --primary-hover: #4a68a3;
+  /* Darker variant for hover */
+  --primary-light: #8CCEE3;
+  /* rgb(140, 206, 227) - Light Cyan */
+  --text-color: #2E3D57;
+  /* rgb(46, 61, 87) - Dark Navy */
+  --text-dark: #2E3D57;
   --bg-color: #ffffff;
   --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
   --gray-500: #6b7280;
-  --glass-bg: rgba(0, 0, 0, 0.03);
-  --glass-border: #e5e7eb;
+  --glass-bg: rgba(89, 121, 186, 0.04);
+  --glass-border: rgba(89, 121, 186, 0.15);
+  --card-bg: #ffffff;
 }
 
 /* Animated gradient background */
@@ -106,7 +114,7 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
   cursor: pointer;
-  background: linear-gradient(135deg, #a5b4fc, #818cf8);
+  background: linear-gradient(135deg, #8CCEE3, #5979BA);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -131,13 +139,13 @@ body {
 
 .text-btn:hover {
   color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(89, 121, 186, 0.08);
 }
 
 .text-btn.active {
   font-weight: 600;
   color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(89, 121, 186, 0.1);
 }
 
 /* 8. CONTENT - 헤더 높이만큼 상단 여백 */
@@ -190,7 +198,7 @@ h2 {
 .form-group input:focus {
   border-color: var(--primary-color);
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(89, 121, 186, 0.15);
 }
 
 .submit-btn {
@@ -204,12 +212,12 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px rgba(89, 121, 186, 0.3);
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 20px rgba(89, 121, 186, 0.4);
 }
 
 .primary-btn {
@@ -222,12 +230,12 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px rgba(89, 121, 186, 0.3);
 }
 
 .primary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 20px rgba(89, 121, 186, 0.4);
 }
 
 .card {
@@ -326,7 +334,7 @@ h2 {
 }
 
 .club-card:hover {
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(89, 121, 186, 0.05);
   transform: translateX(4px);
   border-color: var(--primary-color);
 }
@@ -374,7 +382,7 @@ h2 {
 }
 
 .item-card:hover {
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(89, 121, 186, 0.05);
   border-color: var(--primary-color);
 }
 
@@ -494,7 +502,7 @@ h2 {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(89, 121, 186, 0.08);
   border-color: var(--primary-color);
 }
 
@@ -517,21 +525,21 @@ h2 {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
   border: none;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 20px rgba(89, 121, 186, 0.4);
   transition: all 0.2s ease;
   z-index: 1000;
 }
 
 .admin-fab:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 6px 24px rgba(89, 121, 186, 0.5);
 }
 
 .fab-badge {

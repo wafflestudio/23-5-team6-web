@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getClubItems } from '@/api/client';
 import { clubNames } from '@/mocks/data';
 import type { ClubItem } from '@/api/client';
@@ -7,9 +7,16 @@ import '@/styles/App.css';
 
 const ITEMS_PER_PAGE = 10; // 5x2 grid
 
+interface LocationState {
+    fromTab?: 'borrowed' | 'clubs';
+}
+
 export function ItemListPage() {
     const { clubId } = useParams<{ clubId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const locationState = location.state as LocationState | null;
+
     const [items, setItems] = useState<ClubItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -23,6 +30,11 @@ export function ItemListPage() {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const currentItems = items.slice(startIndex, endIndex);
+
+    // 뒤로가기 핸들러 - 이전 탭 상태 전달
+    const handleGoBack = () => {
+        navigate('/', { state: { tab: locationState?.fromTab || 'clubs' } });
+    };
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -66,8 +78,8 @@ export function ItemListPage() {
         <div className="container">
 
             <main className="main-content">
-                <button className="back-btn" onClick={() => navigate('/clubs')}>
-                    ← 동아리 목록
+                <button className="back-btn" onClick={handleGoBack}>
+                    ← 대시보드
                 </button>
                 <h2>{clubName}</h2>
                 <p className="page-subtitle">물품 목록 ({items.length}개)</p>

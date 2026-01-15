@@ -465,3 +465,157 @@ export const approveUser = async (userId: string, approved: boolean): Promise<{ 
 export const isAdmin = (): boolean => {
     return getUserType() === 1;
 };
+
+// 동아리 가입 신청 타입
+interface ClubApplyRequest {
+    club_code: string;
+}
+
+interface ClubApplyResponse {
+    application_id: number;
+    club_name: string;
+    status: string;
+}
+
+// 동아리 가입 신청
+export const applyToClub = async (clubCode: string): Promise<{ success: boolean; data?: ClubApplyResponse; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const request: ClubApplyRequest = { club_code: clubCode };
+
+        const response = await fetch('/api/club/apply', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request),
+        });
+
+        if (response.status === 200) {
+            const result: ClubApplyResponse = await response.json();
+            showNotification(`${result.club_name} 동아리에 가입 신청되었습니다.`);
+            return { success: true, data: result };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            const errorData: ErrorResponse = await response.json();
+            return { success: false, error: errorData.detail || '가입 신청에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Apply to club error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 동아리 멤버 관련 타입
+export interface ClubMember {
+    user_id: string;
+    club_id: number;
+    permission: number; // 0: 일반 회원, 1: 관리자, 2: 가입대기
+    id: number;
+}
+
+export interface ClubMembersResponse {
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+    items: ClubMember[];
+}
+
+export interface GetClubMembersParams {
+    club_id?: number;
+    member_id?: number;
+    user_id?: string;
+    permission?: number;
+    page?: number;
+    size?: number;
+}
+
+// 동아리 멤버 목록 조회
+// - 파라미터 없이 호출: 자신이 가입한 동아리 목록
+// - club_id 지정: 해당 동아리의 멤버 목록 (관리자용)
+export const getClubMembers = async (params?: GetClubMembersParams): Promise<{ success: boolean; data?: ClubMembersResponse; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        // 쿼리 파라미터 구성
+        const queryParams = new URLSearchParams();
+        if (params?.club_id !== undefined) queryParams.append('club_id', params.club_id.toString());
+        if (params?.member_id !== undefined) queryParams.append('member_id', params.member_id.toString());
+        if (params?.user_id !== undefined) queryParams.append('user_id', params.user_id);
+        if (params?.permission !== undefined) queryParams.append('permission', params.permission.toString());
+        if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+        if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+
+        const url = queryParams.toString()
+            ? `/api/club-members/?${queryParams.toString()}`
+            : '/api/club-members/';
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            const result: ClubMembersResponse = await response.json();
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            return { success: false, error: '멤버 목록을 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get club members error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 동아리원 삭제
+export const deleteClubMember = async (memberId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/club-members/${memberId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            showNotification('멤버가 삭제되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            return { success: false, error: '멤버 삭제에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Delete club member error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { checkBackendStatus } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
+import { UserDashboardPage } from '@/pages/UserDashboardPage';
 import '@/styles/App.css';
 import { useState } from 'react';
 
@@ -76,36 +77,31 @@ export function MainPage() {
         );
     };
 
-    // 관리자로 로그인한 경우 대시보드 표시
+    // 관리자로 로그인한 경우 관리자 대시보드 표시
     if (isLoggedIn && isAdmin) {
         return <AdminDashboardPage />;
     }
 
+    // 일반 사용자로 로그인한 경우 사용자 대시보드 표시
+    if (isLoggedIn) {
+        return <UserDashboardPage />;
+    }
+
+    // 비로그인 상태
     return (
         <div className="container">
 
             <main className="main-content">
                 <h1>Club Asset Management</h1>
 
-                {isLoggedIn ? (
-                    <div className="card">
-                        <p style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--gray-500)' }}>
-                            로그인되었습니다. 내 동아리에서 물품을 확인하세요.
-                        </p>
-                        <button onClick={() => navigate('/clubs')} className="primary-btn">
-                            내 동아리 보기
-                        </button>
-                    </div>
-                ) : (
-                    <div className="card">
-                        <p style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--gray-500)' }}>
-                            로그인하면 동아리 물품을 관리할 수 있습니다.
-                        </p>
-                        <button onClick={() => navigate('/login')} className="primary-btn">
-                            로그인하기
-                        </button>
-                    </div>
-                )}
+                <div className="card">
+                    <p style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--gray-500)' }}>
+                        로그인하면 동아리 물품을 관리할 수 있습니다.
+                    </p>
+                    <button onClick={() => navigate('/login')} className="primary-btn">
+                        로그인하기
+                    </button>
+                </div>
 
                 <div className="card">
                     <button onClick={handleCheck} className="primary-btn">
@@ -146,4 +142,5 @@ export function MainPage() {
         </div>
     );
 }
+
 
