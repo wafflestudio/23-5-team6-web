@@ -41,16 +41,8 @@ export function AdminFAB() {
         const result = await approveUser(userId, approved);
         if (result.success) {
             // 목록에서 해당 사용자 제거
-            setApplications(prev => prev.filter(app => app.user_id !== userId));
+            setApplications(prev => prev.filter(app => app.id !== userId));
         }
-    };
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        });
     };
 
     return (
@@ -88,25 +80,24 @@ export function AdminFAB() {
                             ) : (
                                 <div className="apply-list">
                                     {applications.map(app => (
-                                        <div key={app.user_id} className="apply-card">
+                                        <div key={app.id} className="apply-card">
                                             <div className="apply-info">
                                                 <div className="apply-name">{app.name}</div>
                                                 <div className="apply-details">
                                                     <span>{app.email}</span>
                                                     <span>학번: {app.student_id}</span>
-                                                    <span>신청일: {formatDate(app.created_at)}</span>
                                                 </div>
                                             </div>
                                             <div className="apply-actions">
                                                 <button
                                                     className="approve-btn"
-                                                    onClick={() => handleApprove(app.user_id, true)}
+                                                    onClick={() => handleApprove(app.id, true)}
                                                 >
                                                     승인
                                                 </button>
                                                 <button
                                                     className="reject-btn"
-                                                    onClick={() => handleApprove(app.user_id, false)}
+                                                    onClick={() => handleApprove(app.id, false)}
                                                 >
                                                     거부
                                                 </button>
