@@ -159,6 +159,30 @@
     border-color: var(--primary-color);
 }
 
+.member-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.delete-member-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.delete-member-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+
 .member-info {
     display: flex;
     flex-direction: column;
@@ -346,4 +370,82 @@
 
 .reject-btn:hover {
     background: #dc2626;
+}
+
+/* Add Club Form */
+.add-club-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.add-club-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.add-club-form .form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.add-club-form .form-group input {
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--glass-bg);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.add-club-form .form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-club-submit {
+    margin-top: 0.5rem;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-club-submit:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.add-club-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--gray-500);
+}
+
+.empty-state p {
+    margin: 0 0 1.5rem;
+    font-size: 1rem;
+}
+
+.empty-state .primary-btn {
+    margin-top: 0;
 }
