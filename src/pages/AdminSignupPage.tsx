@@ -5,26 +5,41 @@ import { useForm } from '@/hooks/useForm';
 import '@/styles/App.css';
 
 interface AdminSignupFormValues {
-    username: string;
+    name: string;
+    email: string;
     password: string;
     clubName: string;
+    clubDescription: string;
 }
 
 const initialValues: AdminSignupFormValues = {
-    username: '',
+    name: '',
+    email: '',
     password: '',
     clubName: '',
+    clubDescription: '',
 };
 
 const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
-    if (!values.username.trim()) {
-        return '아이디를 입력해주세요.';
+    if (!values.name.trim()) {
+        return '이름을 입력해주세요.';
+    }
+    if (!values.email.trim()) {
+        return '이메일을 입력해주세요.';
+    }
+    // 간단한 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(values.email)) {
+        return '올바른 이메일 형식을 입력해주세요.';
     }
     if (values.password.length < 8) {
         return '비밀번호는 8자 이상이어야 합니다.';
     }
     if (!values.clubName.trim()) {
         return '동아리 이름을 입력해주세요.';
+    }
+    if (!values.clubDescription.trim()) {
+        return '동아리 설명을 입력해주세요.';
     }
     return null;
 };
@@ -39,9 +54,11 @@ export function AdminSignupPage() {
 
     const onSubmit = async () => {
         const result = await adminSignup({
-            username: values.username,
+            name: values.name,
+            email: values.email,
             password: values.password,
-            club_name: values.clubName
+            club_name: values.clubName,
+            club_description: values.clubDescription
         });
 
         if (result.success) {
@@ -60,16 +77,29 @@ export function AdminSignupPage() {
                 <p className="admin-signup-subtitle">동아리 운영자로 가입하시면 동아리를 관리할 수 있습니다.</p>
                 <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     <div className="form-group">
-                        <label htmlFor="username">아이디</label>
+                        <label htmlFor="name">이름</label>
                         <input
                             type="text"
-                            id="username"
-                            name="username"
-                            value={values.username}
+                            id="name"
+                            name="name"
+                            value={values.name}
                             onChange={handleChange}
                             required
-                            maxLength={30}
-                            placeholder="아이디를 입력하세요"
+                            maxLength={50}
+                            placeholder="이름을 입력하세요"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="email">이메일</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={values.email}
+                            onChange={handleChange}
+                            required
+                            placeholder="이메일을 입력하세요"
                         />
                     </div>
 
@@ -97,6 +127,19 @@ export function AdminSignupPage() {
                             onChange={handleChange}
                             required
                             placeholder="동아리 이름을 입력하세요"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="clubDescription">동아리 설명</label>
+                        <textarea
+                            id="clubDescription"
+                            name="clubDescription"
+                            value={values.clubDescription}
+                            onChange={handleChange}
+                            required
+                            placeholder="동아리에 대한 간단한 설명을 입력하세요"
+                            rows={3}
                         />
                     </div>
 

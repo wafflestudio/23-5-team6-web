@@ -5,14 +5,75 @@ import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import '@/styles/App.css';
 import { useState } from 'react';
 
+interface LocationState {
+    latitude: number | null;
+    longitude: number | null;
+    loading: boolean;
+    error: string | null;
+}
+
 export function MainPage() {
     const navigate = useNavigate();
     const { isLoggedIn, isAdmin } = useAuth();
     const [status, setStatus] = useState<string>('');
+    const [location, setLocation] = useState<LocationState>({
+        latitude: null,
+        longitude: null,
+        loading: false,
+        error: null,
+    });
 
     const handleCheck = async () => {
         const result = await checkBackendStatus();
         setStatus(result.status);
+    };
+
+    const handleGetLocation = () => {
+        if (!navigator.geolocation) {
+            setLocation(prev => ({
+                ...prev,
+                error: '이 브라우저에서는 위치 정보를 지원하지 않습니다.',
+            }));
+            return;
+        }
+
+        setLocation(prev => ({ ...prev, loading: true, error: null }));
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLocation({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    loading: false,
+                    error: null,
+                });
+            },
+            (error) => {
+                let errorMessage = '위치 정보를 가져오는데 실패했습니다.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = '위치 정보 접근이 거부되었습니다.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = '위치 정보를 사용할 수 없습니다.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = '위치 정보 요청 시간이 초과되었습니다.';
+                        break;
+                }
+                setLocation({
+                    latitude: null,
+                    longitude: null,
+                    loading: false,
+                    error: errorMessage,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
     };
 
     // 관리자로 로그인한 경우 대시보드 표시
@@ -53,6 +114,31 @@ export function MainPage() {
                     {status && (
                         <p className={`status ${status === 'Success' ? 'success' : 'error'}`}>
                             {status}
+                        </p>
+                    )}
+                </div>
+
+                <div className="card">
+                    <button
+                        onClick={handleGetLocation}
+                        className="primary-btn"
+                        disabled={location.loading}
+                    >
+                        {location.loading ? '위치 조회 중...' : '📍 현재 위치 조회'}
+                    </button>
+                    {location.latitude !== null && location.longitude !== null && (
+                        <div className="location-result" style={{ marginTop: '1rem' }}>
+                            <p style={{ margin: 0, color: 'var(--gray-700)' }}>
+                                <strong>위도:</strong> {location.latitude.toFixed(6)}
+                            </p>
+                            <p style={{ margin: '0.5rem 0 0 0', color: 'var(--gray-700)' }}>
+                                <strong>경도:</strong> {location.longitude.toFixed(6)}
+                            </p>
+                        </div>
+                    )}
+                    {location.error && (
+                        <p className="status error" style={{ marginTop: '1rem' }}>
+                            {location.error}
                         </p>
                     )}
                 </div>
