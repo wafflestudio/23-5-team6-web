@@ -11,7 +11,7 @@ interface UseFormReturn<T> {
     isLoading: boolean;
     setError: (error: string) => void;
     setLoading: (loading: boolean) => void;
-    handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     handleSubmit: (onSubmit: () => Promise<void>) => (e: React.FormEvent) => Promise<void>;
     resetForm: () => void;
 }
@@ -32,7 +32,7 @@ export function useForm<T extends object>({
         };
     }, []);
 
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setValues(prev => ({ ...prev, [name]: value }));
     }, []);

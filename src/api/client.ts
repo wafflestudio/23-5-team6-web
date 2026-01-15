@@ -54,11 +54,14 @@ interface ClubItemsResponse {
 
 // 관리자 가입 신청 관련 타입
 export interface ApplyListItem {
-    user_id: string;
+    id: string;
     name: string;
     email: string;
-    created_at: string;
     student_id: string;
+}
+
+export interface ApplyListResponse {
+    users: ApplyListItem[];
 }
 
 interface ApproveUserResponse {
@@ -66,8 +69,6 @@ interface ApproveUserResponse {
     name: string;
     email: string;
     status: string;
-    created_at: string;
-    approved_at: string;
 }
 
 // Token 및 사용자 정보 관리 - sessionStorage 사용 (탭 종료 시 자동 삭제)
@@ -216,9 +217,11 @@ export const signup = async (data: SignupRequest): Promise<{ success: boolean; d
 
 // 관리자 회원가입 타입
 interface AdminSignupRequest {
-    username: string;
+    name: string;
+    email: string;
     password: string;
     club_name: string;
+    club_description: string;
 }
 
 interface AdminSignupResponse {
@@ -226,6 +229,8 @@ interface AdminSignupResponse {
     name: string;
     email: string;
     club_id: number;
+    club_name: string;
+    club_code: string;
 }
 
 // 관리자 회원가입
@@ -403,13 +408,12 @@ export const getApplyList = async (): Promise<{ success: boolean; data?: ApplyLi
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
             },
         });
 
         if (response.status === 200) {
-            const result: ApplyListItem[] = await response.json();
-            return { success: true, data: result };
+            const result: ApplyListResponse = await response.json();
+            return { success: true, data: result.users };
         } else if (response.status === 401) {
             return { success: false, error: '인증이 만료되었습니다.' };
         } else if (response.status === 403) {

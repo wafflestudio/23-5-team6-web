@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getApplyList, approveUser, type ApplyListItem } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -21,6 +22,32 @@ type TabType = 'assets' | 'members';
 
 export function AdminDashboardPage() {
     const [activeTab, setActiveTab] = useState<TabType>('assets');
+    const [showApprovalModal, setShowApprovalModal] = useState(false);
+    const [applyList, setApplyList] = useState<ApplyListItem[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleOpenApprovalModal = async () => {
+        setIsLoading(true);
+        setError(null);
+        const result = await getApplyList();
+        setIsLoading(false);
+
+        if (result.success && result.data) {
+            setApplyList(result.data);
+            setShowApprovalModal(true);
+        } else {
+            setError(result.error || '신청 목록을 불러오는데 실패했습니다.');
+        }
+    };
+
+    const handleApprove = async (userId: string, approved: boolean) => {
+        const result = await approveUser(userId, approved);
+        if (result.success) {
+            // 승인/거절 후 목록에서 제거
+            setApplyList(prev => prev.filter(user => user.id !== userId));
+        }
+    };
 
     return (
         <div className="container">
@@ -39,10 +66,64 @@ export function AdminDashboardPage() {
                     >
                         멤버관리
                     </button>
-                    <button className="member-approve-btn">
-                        멤버 승인
+                    <button
+                        className="member-approve-btn"
+                        onClick={handleOpenApprovalModal}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? '로딩...' : '멤버 승인'}
                     </button>
                 </div>
+
+                {error && <p className="error-message">{error}</p>}
+
+                {/* 멤버 승인 모달 */}
+                {showApprovalModal && (
+                    <div className="approval-modal-overlay" onClick={() => setShowApprovalModal(false)}>
+                        <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="approval-modal-header">
+                                <h3>멤버 승인 요청</h3>
+                                <button
+                                    className="close-btn"
+                                    onClick={() => setShowApprovalModal(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="approval-modal-content">
+                                {applyList.length === 0 ? (
+                                    <p className="empty-message">승인 대기 중인 멤버가 없습니다.</p>
+                                ) : (
+                                    <div className="approval-list">
+                                        {applyList.map((user) => (
+                                            <div key={user.id} className="approval-item">
+                                                <div className="approval-user-info">
+                                                    <p className="approval-user-name">{user.name}</p>
+                                                    <p className="approval-user-email">{user.email}</p>
+                                                    <p className="approval-user-student">{user.student_id}</p>
+                                                </div>
+                                                <div className="approval-actions">
+                                                    <button
+                                                        className="approve-btn"
+                                                        onClick={() => handleApprove(user.id, true)}
+                                                    >
+                                                        승인
+                                                    </button>
+                                                    <button
+                                                        className="reject-btn"
+                                                        onClick={() => handleApprove(user.id, false)}
+                                                    >
+                                                        거절
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* 자산관리 탭 */}
                 {activeTab === 'assets' && (
@@ -94,3 +175,4 @@ export function AdminDashboardPage() {
         </div>
     );
 }
+
