@@ -39,9 +39,9 @@ interface ErrorResponse {
 
 // 물품 관련 타입
 export interface ClubItem {
-    item_id: number;
+    item_id: string;
     name: string;
-    status: 'available' | 'borrowed';
+    status: 'borrowed' | 'returned' | 'overdue' | 'available';
     borrowed_at: string | null;
     expected_return_date: string | null;
     current_holder: string | null;
@@ -617,5 +617,36 @@ export const deleteClubMember = async (memberId: number): Promise<{ success: boo
     } catch (error) {
         console.error('Delete club member error:', error);
         return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 사용자: 대여 신청 API 함수
+export const borrowItem = async (itemId: string, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        const response = await fetch('/api/rentals/borrow', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                expected_return_date: expectedReturnDate
+            }),
+        });
+
+        if (response.status === 201) {
+            showNotification('대여가 완료되었습니다!', 'success');
+            return { success: true };
+        } else {
+            const errorData = await response.json();
+            showNotification(errorData.detail || '대여에 실패했습니다.', 'error');
+            return { success: false, error: errorData.detail };
+        }
+    } catch (error) {
+        console.error('Borrow error:', error);
+        showNotification('네트워크 오류가 발생했습니다.', 'error');
+        return { success: false, error: 'Network error' };
     }
 };
