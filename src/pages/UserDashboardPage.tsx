@@ -69,6 +69,7 @@ export function UserDashboardPage() {
     const locationState = location.state as LocationState | null;
 
     const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab(locationState));
+    const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null);
     const [showAddClubModal, setShowAddClubModal] = useState(false);
     const [clubCode, setClubCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +82,15 @@ export function UserDashboardPage() {
     // 탭 변경 시 sessionStorage에 저장
     useEffect(() => {
         sessionStorage.setItem(TAB_STORAGE_KEY, activeTab);
+        setSelectedReturnId(null);
     }, [activeTab]);
+
+    // --- 반납 처리 함수 ---
+    const handleReturnSubmit = (itemId: number) => {
+        const item = dummyBorrowedItems.find(i => i.id === itemId);
+        alert(`${item?.name} 반납 신청이 완료되었습니다.`);
+        setSelectedReturnId(null); // 처리 후 선택 해제
+    };
 
     // 동아리 목록 가져오기
     useEffect(() => {
@@ -129,6 +138,16 @@ export function UserDashboardPage() {
             setError(result.error || '가입 신청에 실패했습니다.');
         }
     };
+
+    // 상세페이지로 이동하는 핸들러
+    const handleGoToReturnDetail = (itemId: number) => {
+    // 아이템 ID를 URL 파라미터로 전달하고, 
+    // 필요하다면 현재 상태(tab 등)를 state로 넘길 수 있습니다.
+    navigate(`/return/detail/${itemId}`, { 
+        state: { from: location.pathname, tab: activeTab } 
+    });
+    };
+
 
     return (
         <div className="container">
@@ -222,13 +241,19 @@ export function UserDashboardPage() {
                                                 반납예정일: {item.expectedReturn}
                                             </p>
                                         </div>
+                                        <button 
+                                            className="primary-btn"
+                                            onClick={() => handleGoToReturnDetail(item.id)}
+                                        >
+                                            반납 신청하기
+                                        </button>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
                 )}
-
+                
                 {/* 동아리 목록 탭 */}
                 {activeTab === 'clubs' && (
                     <div className="admin-content">
