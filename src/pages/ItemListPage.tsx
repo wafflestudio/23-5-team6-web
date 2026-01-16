@@ -53,7 +53,8 @@ export function ItemListPage() {
     // 대여 확정 핸들러
     const handleConfirmBorrow = async () => {
         if (!selectedItem) return;
-        const result = await borrowItem(selectedItem.item_id, returnDate);
+        const returnDateTimestamp = new Date(returnDate).getTime();
+        const result = await borrowItem(selectedItem.item_id, returnDateTimestamp);
         if (result.success) {
             setIsModalOpen(false);
             fetchItems(); // 목록 새로고침
@@ -62,7 +63,9 @@ export function ItemListPage() {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'returned': return <span className="status-badge available">대여 가능</span>;
+            // 'available' 상태 처리 임의 추가, 벡엔드와 논의 필요 // 
+            case 'available': return <span className="status-badge available">대여 가능</span>;
+            case 'returned': return <span className="status-badge returned">대여 가능</span>;
             case 'borrowed': return <span className="status-badge borrowed">대여 중</span>;
             case 'overdue': return <span className="status-badge overdue">연체됨</span>;
             default: return <span className="status-badge">{status}</span>;

@@ -39,7 +39,7 @@ interface ErrorResponse {
 
 // 물품 관련 타입
 export interface ClubItem {
-    item_id: number;
+    item_id: string;
     name: string;
     status: 'borrowed' | 'returned' | 'overdue' | 'available';
     borrowed_at: string | null;
@@ -621,7 +621,7 @@ export const deleteClubMember = async (memberId: number): Promise<{ success: boo
 };
 
 // 사용자: 대여 신청 API 함수
-export const borrowItem = async (itemId: number, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
+export const borrowItem = async (itemId: string, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
     try {
         const accessToken = getAccessToken();
         const response = await fetch('/api/rentals/borrow', {
