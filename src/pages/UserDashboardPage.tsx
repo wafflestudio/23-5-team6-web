@@ -69,7 +69,6 @@ export function UserDashboardPage() {
     const locationState = location.state as LocationState | null;
 
     const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab(locationState));
-    const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null);
     const [showAddClubModal, setShowAddClubModal] = useState(false);
     const [clubCode, setClubCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -82,15 +81,7 @@ export function UserDashboardPage() {
     // 탭 변경 시 sessionStorage에 저장
     useEffect(() => {
         sessionStorage.setItem(TAB_STORAGE_KEY, activeTab);
-        setSelectedReturnId(null);
     }, [activeTab]);
-
-    // --- 반납 처리 함수 ---
-    const handleReturnSubmit = (itemId: number) => {
-        const item = dummyBorrowedItems.find(i => i.id === itemId);
-        alert(`${item?.name} 반납 신청이 완료되었습니다.`);
-        setSelectedReturnId(null); // 처리 후 선택 해제
-    };
 
     // 동아리 목록 가져오기
     useEffect(() => {

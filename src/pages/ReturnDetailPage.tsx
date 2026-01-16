@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { returnItem } from '@/api/client';
 import '@/styles/App.css';
 
 // 임시 데이터 (실제 서비스에서는 API로 호출)
@@ -22,9 +23,11 @@ export function ReturnDetailPage() {
     };
 
     // 파일 선택 시 미리보기 생성
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
@@ -33,25 +36,29 @@ export function ReturnDetailPage() {
         }
     };
 
-    const handleReturnSubmit = () => {
+    const handleReturnSubmit = async () => {
         // 1. 사진 업로드 여부 체크
         if (!imagePreview) {
             alert('반납 확인을 위해 물품 사진을 업로드해주세요.');
             return;
         }
 
+        if (!itemId) {
+            alert('물품 정보를 불러올 수 없습니다.');
+            return;
+        }
+
         // 2. 여기에 실제 API 호출 로직이 들어갑니다.
-        // console.log("서버로 반납 요청 전송:", itemId, imagePreview);
+       const result = await returnItem(itemId, selectedFile!);
 
-        // 3. 완료 알림
-        alert(`${item?.name} 반납 신청이 완료되었습니다.`);
-
-        // 4. 대시보드로 이동 
+        // 3. 결과에 따른 알림 처리
         // state를 통해 'borrowed' 탭을 활성화하도록 전달합니다.
-        navigate('/user/dashboard', { 
-            state: { tab: 'borrowed' },
-            replace: true // 뒤로가기를 했을 때 다시 이 상세페이지로 오지 않도록 히스토리 교체
-        });
+        if (result.success){
+            alert('반납 신청이 완료되었습니다.');
+            navigate('/user/dashboard', { state: { tab: 'borrowed' }, replace: true });
+        } else {
+        alert('반납 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
     };
 
     if (!item) return <div className="container">물품 정보가 없습니다.</div>;
