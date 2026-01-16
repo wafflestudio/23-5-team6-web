@@ -1,15 +1,10 @@
-<<<<<<< HEAD
 import { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-=======
-import { useState, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
->>>>>>> 61cc4bb (fix: 목업 데이터 수정)
 import { returnItem } from '@/api/client';
 import { dummyItemsData } from '@/mocks/data'; // 모든 아이템 데이터가 들어있는 곳으로 가정
 import '@/styles/App.css';
 
-<<<<<<< HEAD
+
 interface ItemInfo {
     id: number;
     name: string;
@@ -23,41 +18,14 @@ interface LocationState {
     item?: ItemInfo;
 }
 
-=======
->>>>>>> 61cc4bb (fix: 목업 데이터 수정)
 export function ReturnDetailPage() {
     // API 명세상 실제로는 rentalId를 사용하므로 이름을 명확히 합니다.
     const { itemId: rentalId } = useParams(); 
     const navigate = useNavigate();
-<<<<<<< HEAD
     const location = useLocation();
     const locationState = location.state as LocationState | null;
-    const item = locationState?.item;
-=======
-    
-    // 로딩 상태 관리
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    // itemId를 기반으로 대여 중인 물품 정보 찾기
-    // (이전 답변대로 모든 더미 데이터가 포함된 dummyItemsData를 사용한다고 가정)
-    const item = useMemo(() => {
-        // dummyItemsData의 모든 값(ClubItemsResponse들)을 순회합니다.
-        for (const clubId in dummyItemsData) {
-            const clubData = dummyItemsData[clubId];
-            // 각 동아리의 items 배열 안에서 item_id가 일치하는 것을 찾습니다.
-            const found = clubData.items.find(i => String(i.item_id) === rentalId);
-            
-            if (found) {
-                // 찾았다면 해당 물품 정보와 동아리 이름을 합쳐서 반환합니다.
-                return { 
-                    ...found, 
-                    clubName: `동아리 #${clubId}` // 실제 서비스에선 clubNameMap 활용 권장
-                };
-            }
-        }
-        return null;
-    }, [rentalId]);
->>>>>>> 61cc4bb (fix: 목업 데이터 수정)
+    const item = locationState?.item;
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
