@@ -10,6 +10,8 @@ import { ClubListPage } from '@/pages/ClubListPage';
 import { ItemListPage } from '@/pages/ItemListPage';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { AdminFAB } from '@/components/AdminFAB';
+import { ReturnDetailPage } from './pages/ReturnDetailPage';
+import { UserDashboardPage } from './pages/UserDashboardPage';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route path="/clubs" element={<ClubListPage />} />
           <Route path="/clubs/:clubId/items" element={<ItemListPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/user/dashboard" element={<UserDashboardPage />} />
+          <Route path="/return/detail/:itemId" element={<ReturnDetailPage />} />
         </Routes>
         <AdminFAB />
         <ToastContainer />

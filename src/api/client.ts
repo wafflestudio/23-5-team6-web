@@ -52,6 +52,7 @@ interface ClubItemsResponse {
     items: ClubItem[];
 }
 
+
 // 관리자 가입 신청 관련 타입
 export interface ApplyListItem {
     id: string;
@@ -648,5 +649,69 @@ export const borrowItem = async (itemId: string, expectedReturnDate?: string): P
         console.error('Borrow error:', error);
         showNotification('네트워크 오류가 발생했습니다.', 'error');
         return { success: false, error: 'Network error' };
+    }
+};
+
+// 사용자: 반납 관련 타입
+interface ReturnResponse {
+    id: string;
+    item_id: string;
+    user_id: string;
+    status: string;
+    borrowed_at: string;
+    expected_return_date?: string;
+    returned_at: string;
+}
+
+// 사용자: 반납 신청 API 함수
+export const returnItem = async (
+    rentalId: string,
+    imageFile: File
+): Promise<{ success: boolean; data?: ReturnResponse; error?: string }> => {
+    try {
+        // 기존 유틸리티 함수를 사용하여 세션/메모리에서 토큰 가져오기
+        const accessToken = getAccessToken(); 
+        if (!accessToken) {
+            return { success: false, error: '인증 정보가 없습니다.' };
+        }
+
+        const formData = new FormData();
+        formData.append('image', imageFile); // 서버에서 받을 키 이름 ('image') 
+
+        // 다른 API들과 일치하게 상대 경로(/api/...) 사용
+        const response = await fetch(`/api/rentals/${rentalId}/return`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+            body: formData,
+        });
+
+        if (response.status === 200) {
+            const data: ReturnResponse = await response.json();
+            showNotification('반납이 완료되었습니다!', 'success'); // 토스트 알림 통합
+            return { success: true, data };
+        } else if (response.status === 401) {
+            const error = '인증 토큰이 만료되었습니다. 다시 로그인해주세요.';
+            showNotification(error, 'error');
+            return { success: false, error };
+        } else if (response.status === 403) {
+            const error = '본인이 대여한 물품만 반납할 수 있습니다.';
+            showNotification(error, 'error');
+            return { success: false, error };
+        } else if (response.status === 404) {
+            const error = '존재하지 않는 대여 기록입니다.';
+            showNotification(error, 'error');
+            return { success: false, error };
+        } else {
+            const errorData = await response.json().catch(() => ({ detail: '알 수 없는 오류' }));
+            const error = errorData.detail || '반납 처리 중 오류가 발생했습니다.';
+            showNotification(error, 'error');
+            return { success: false, error };
+        }
+    } catch (err) {
+        console.error('Return item error:', err);
+        showNotification('네트워크 오류가 발생했습니다.', 'error');
+        return { success: false, error: '서버와 통신 중 네트워크 오류가 발생했습니다.' };
     }
 };

@@ -130,6 +130,16 @@ export function UserDashboardPage() {
         }
     };
 
+    // 상세페이지로 이동하는 핸들러
+    const handleGoToReturnDetail = (itemId: number) => {
+    // 아이템 ID를 URL 파라미터로 전달하고, 
+    // 필요하다면 현재 상태(tab 등)를 state로 넘길 수 있습니다.
+    navigate(`/return/detail/${itemId}`, { 
+        state: { from: location.pathname, tab: activeTab } 
+    });
+    };
+
+
     return (
         <div className="container">
             <main className="main-content admin-dashboard">
@@ -222,13 +232,19 @@ export function UserDashboardPage() {
                                                 반납예정일: {item.expectedReturn}
                                             </p>
                                         </div>
+                                        <button 
+                                            className="primary-btn"
+                                            onClick={() => handleGoToReturnDetail(item.id)}
+                                        >
+                                            반납 신청하기
+                                        </button>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
                 )}
-
+                
                 {/* 동아리 목록 탭 */}
                 {activeTab === 'clubs' && (
                     <div className="admin-content">
