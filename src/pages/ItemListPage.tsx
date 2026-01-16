@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClubItems, borrowItem } from '@/api/client'; // borrowItem 함수가 api/client에 있어야 함
-import { clubNames } from '@/mocks/data';
+import { getClubItems, borrowItem } from '@/api/client';
 import type { ClubItem } from '@/api/client';
 import '@/styles/App.css';
 
@@ -22,7 +21,6 @@ export function ItemListPage() {
     const [returnDate, setReturnDate] = useState('');
 
     const clubIdNum = parseInt(clubId || '0', 10);
-    const clubName = clubNames[clubIdNum] || `동아리 ${clubId}`;
 
     useEffect(() => {
             const fetchItems = async () => {
@@ -91,7 +89,7 @@ export function ItemListPage() {
                 <button className="back-btn" onClick={() => navigate('/clubs')}>
                     ← 동아리 목록
                 </button>
-                <h2>{clubName}</h2>
+                <h2>물품 관리</h2>
                 <p className="page-subtitle">물품 목록 ({items.length}개)</p>
 
                 {loading ? (

@@ -1,17 +1,27 @@
 import { useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { returnItem } from '@/api/client';
 import '@/styles/App.css';
 
-// 임시 데이터 (실제 서비스에서는 API로 호출)
-const dummyBorrowedItems = [
-    { id: 1, name: '맥북 프로 14', clubName: '컴퓨터 동아리', borrowedAt: '2024-01-10', expectedReturn: '2024-01-20', image: '📱' },
-];
+interface ItemInfo {
+    id: number;
+    name: string;
+    clubName: string;
+    borrowedAt: string;
+    expectedReturn: string;
+    image?: string;
+}
+
+interface LocationState {
+    item?: ItemInfo;
+}
 
 export function ReturnDetailPage() {
     const { itemId } = useParams();
     const navigate = useNavigate();
-    const item = dummyBorrowedItems.find(i => i.id === Number(itemId));
+    const location = useLocation();
+    const locationState = location.state as LocationState | null;
+    const item = locationState?.item;
 
     // 사진 업로드를 위한 상태 및 Ref
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -61,7 +71,18 @@ export function ReturnDetailPage() {
         }
     };
 
-    if (!item) return <div className="container">물품 정보가 없습니다.</div>;
+    if (!item) {
+        return (
+            <div className="container">
+                <main className="main-content">
+                    <p>물품 정보가 없습니다.</p>
+                    <button className="submit-btn" onClick={() => navigate(-1)}>
+                        뒤로 가기
+                    </button>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="container">
@@ -70,7 +91,7 @@ export function ReturnDetailPage() {
                 <div className="card return-info-card" style={{ border: 'none', background: 'transparent' }}>
                     <div className="asset-info-section" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                         <div className="asset-image-placeholder" style={{ width: '120px', height: '120px', borderRadius: '20px', fontSize: '3rem', background: '#f8f9fa' }}>
-                            {item.image}
+                            {item.image || '📦'}
                         </div>
                         <div className="asset-info">
                             <h2 className="asset-name" style={{ margin: '0 0 10px 0', fontSize: '1.4rem' }}>{item.name}</h2>

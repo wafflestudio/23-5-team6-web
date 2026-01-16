@@ -1,8 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login, saveTokens, saveUserInfo } from '@/api/client';
+import { login } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/hooks/useForm';
-import { showToast } from '@/utils/toast';
 import '@/styles/App.css';
 
 interface LoginFormValues {
@@ -25,17 +24,6 @@ export function LoginPage() {
     const successMessage = (location.state as { message?: string })?.message;
 
     const onSubmit = async () => {
-        // 더미 관리자 로그인: admin@test.com
-        if (values.email === 'admin@test.com') {
-            // 가짜 토큰 저장
-            saveTokens('dummy_admin_access_token', 'dummy_admin_refresh_token');
-            saveUserInfo('관리자', 1); // userType 1 = 관리자
-            showToast('관리자 로그인 성공!', 'success');
-            refreshAuth();
-            navigate('/admin/dashboard');
-            return;
-        }
-
         const result = await login({
             email: values.email,
             password: values.password,

@@ -357,8 +357,40 @@ export const logout = async (): Promise<{ success: boolean; error?: string }> =>
     }
 };
 
-// 더미 물품 데이터 (API 연동 전 테스트용) - mocks에서 import
-import { dummyItemsData } from '@/mocks/data';
+// 동아리 정보 타입
+export interface Club {
+    id: number;
+    name: string;
+    description: string;
+    club_code: string;
+}
+
+// 동아리 정보 조회 (GET /api/clubs/{club_id})
+export const getClub = async (clubId: number): Promise<{ success: boolean; data?: Club; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/clubs/${clubId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            const result: Club = await response.json();
+            return { success: true, data: result };
+        } else {
+            return { success: false, error: '동아리 정보를 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get club error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
 
 // 동아리 물품 목록 조회
 export const getClubItems = async (clubId: number): Promise<{ success: boolean; data?: ClubItemsResponse; error?: string }> => {
@@ -379,20 +411,10 @@ export const getClubItems = async (clubId: number): Promise<{ success: boolean; 
             const result: ClubItemsResponse = await response.json();
             return { success: true, data: result };
         } else {
-            // API 실패 시 더미 데이터 반환 (개발용)
-            const dummyData = dummyItemsData[clubId];
-            if (dummyData) {
-                return { success: true, data: dummyData };
-            }
             return { success: false, error: '물품 목록을 불러올 수 없습니다.' };
         }
     } catch (error) {
         console.error('Get club items error:', error);
-        // 네트워크 에러 시 더미 데이터 반환 (개발용)
-        const dummyData = dummyItemsData[clubId];
-        if (dummyData) {
-            return { success: true, data: dummyData };
-        }
         return { success: false, error: 'Network error occurred' };
     }
 };
