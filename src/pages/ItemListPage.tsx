@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getClubItems, borrowItem } from '@/api/client'; // borrowItem 함수가 api/client에 있어야 함
 import { clubNames } from '@/mocks/data';
@@ -24,7 +24,7 @@ export function ItemListPage() {
     const clubName = clubNames[clubIdNum] || `동아리 ${clubId}`;
 
     // 데이터 패칭 함수
-    const fetchItems = async () => {
+    const fetchItems = useCallback(async () => {
         setLoading(true);
         const result = await getClubItems(clubIdNum);
         if (result.success && result.data) {
@@ -33,13 +33,13 @@ export function ItemListPage() {
             setError(result.error || '물품을 불러오는데 실패했습니다.');
         }
         setLoading(false);
-    };
+    }, [clubIdNum]);
 
     useEffect(() => {
         if (clubIdNum) {
             fetchItems();
         }
-    }, [clubIdNum]);
+    }, [fetchItems, clubIdNum]);
 
     // 대여 버튼 클릭 핸들러
     const handleRentClick = (item: ClubItem) => {
