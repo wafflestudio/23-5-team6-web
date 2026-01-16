@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { returnItem } from '@/api/client';
-import { dummyItemsData } from '@/mocks/data'; // 모든 아이템 데이터가 들어있는 곳으로 가정
 import '@/styles/App.css';
 
 
