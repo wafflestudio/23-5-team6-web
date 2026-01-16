@@ -24,15 +24,15 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
         total: 3,
         items: [
             {
-                item_id: 101,
+                item_id: "101",
                 name: '캐논 DSLR 카메라',
-                status: 'returned',
+                status: 'available',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,
             },
             {
-                item_id: 102,
+                item_id: "102",
                 name: '삼각대 (대형)',
                 status: 'borrowed',
                 borrowed_at: '2025-01-09T15:30:00Z',
@@ -40,9 +40,9 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
                 current_holder: '김철수',
             },
             {
-                item_id: 103,
+                item_id: "103",
                 name: '조명 세트',
-                status: 'returned',
+                status: 'available',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,
@@ -53,7 +53,7 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
         total: 2,
         items: [
             {
-                item_id: 201,
+                item_id: "201",
                 name: '무선 마이크',
                 status: 'borrowed',
                 borrowed_at: '2025-01-10T10:00:00Z',
@@ -61,9 +61,9 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
                 current_holder: '이영희',
             },
             {
-                item_id: 202,
+                item_id: "202",
                 name: '기타 앰프',
-                status: 'returned',
+                status: 'available',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,
