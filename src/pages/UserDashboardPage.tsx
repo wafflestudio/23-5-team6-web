@@ -1,28 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, type ClubMember } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, type ClubMember } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
-
-// 더미 데이터 (API 연결 전 fallback용)
-const dummyBorrowedItems = [
-    { id: 1, name: '맥북 프로 14', clubName: '컴퓨터 동아리', borrowedAt: '2024-01-10', expectedReturn: '2024-01-20' },
-    { id: 2, name: '아이패드 프로', clubName: '디자인 동아리', borrowedAt: '2024-01-05', expectedReturn: '2024-01-15' },
-];
-
-// 더미 동아리 데이터 (API 연결 전 fallback용)
-const dummyClubs: ClubMember[] = [
-    { id: 1, user_id: 'user1', club_id: 1, permission: 0 },
-    { id: 2, user_id: 'user1', club_id: 2, permission: 0 },
-    { id: 3, user_id: 'user1', club_id: 3, permission: 1 },
-];
-
-// club_id에 따른 동아리 이름 (임시)
-const clubNameMap: { [key: number]: string } = {
-    1: '컴퓨터 동아리',
-    2: '디자인 동아리',
-    3: '음악 동아리',
-};
 
 type TabType = 'borrowed' | 'clubs';
 
@@ -44,11 +24,6 @@ const getInitialTab = (locationState: LocationState | null): TabType => {
     return 'borrowed';
 };
 
-// 동아리 이름 가져오기
-const getClubName = (clubId: number): string => {
-    return clubNameMap[clubId] || `동아리 #${clubId}`;
-};
-
 export function UserDashboardPage() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -60,9 +35,20 @@ export function UserDashboardPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // 동아리 목록 상태 - 더미 데이터로 초기화
-    const [myClubs, setMyClubs] = useState<ClubMember[]>(dummyClubs);
+    // 동아리 목록 상태
+    const [myClubs, setMyClubs] = useState<ClubMember[]>([]);
     const [clubsLoading, setClubsLoading] = useState(true);
+    const [clubNames, setClubNames] = useState<Record<number, string>>({});
+
+    // 대여 항목 상태 (TODO: 대여 목록 API 연동 필요)
+    const [borrowedItems] = useState<Array<{
+        id: number;
+        name: string;
+        clubName: string;
+        borrowedAt: string;
+        expectedReturn: string;
+    }>>([]);
+    const [borrowedLoading] = useState(false);
 
     // 탭 변경 시 sessionStorage에 저장
     useEffect(() => {
@@ -74,11 +60,22 @@ export function UserDashboardPage() {
         const fetchMyClubs = async () => {
             setClubsLoading(true);
             const result = await getClubMembers();
-            if (result.success && result.data && result.data.items.length > 0) {
-                // API 성공 시 실제 데이터 사용
-                setMyClubs(result.data.items.filter(item => item.permission !== 2));
+            if (result.success && result.data) {
+                const clubs = result.data.items.filter(item => item.permission !== 2);
+                setMyClubs(clubs);
+
+                // 각 동아리의 이름 가져오기
+                const names: Record<number, string> = {};
+                await Promise.all(
+                    clubs.map(async (club) => {
+                        const clubResult = await getClub(club.club_id);
+                        if (clubResult.success && clubResult.data) {
+                            names[club.club_id] = clubResult.data.name;
+                        }
+                    })
+                );
+                setClubNames(names);
             }
-            // API 실패해도 더미 데이터가 이미 있으므로 그대로 표시
             setClubsLoading(false);
         };
 
@@ -109,7 +106,22 @@ export function UserDashboardPage() {
             // 동아리 목록 새로고침
             const refreshResult = await getClubMembers();
             if (refreshResult.success && refreshResult.data) {
-                setMyClubs(refreshResult.data.items.filter(item => item.permission !== 2));
+                const clubs = refreshResult.data.items.filter(item => item.permission !== 2);
+                setMyClubs(clubs);
+
+                // 새 동아리 이름 가져오기
+                const names: Record<number, string> = { ...clubNames };
+                await Promise.all(
+                    clubs.map(async (club) => {
+                        if (!names[club.club_id]) {
+                            const clubResult = await getClub(club.club_id);
+                            if (clubResult.success && clubResult.data) {
+                                names[club.club_id] = clubResult.data.name;
+                            }
+                        }
+                    })
+                );
+                setClubNames(names);
             }
         } else {
             setError(result.error || '가입 신청에 실패했습니다.');
@@ -195,13 +207,15 @@ export function UserDashboardPage() {
                 {/* 대여항목 탭 */}
                 {activeTab === 'borrowed' && (
                     <div className="admin-content">
-                        {dummyBorrowedItems.length === 0 ? (
+                        {borrowedLoading ? (
+                            <div className="loading">대여 목록을 불러오는 중...</div>
+                        ) : borrowedItems.length === 0 ? (
                             <div className="empty-state">
                                 <p>현재 대여 중인 물품이 없습니다.</p>
                             </div>
                         ) : (
                             <div className="asset-list">
-                                {dummyBorrowedItems.map((item) => (
+                                {borrowedItems.map((item) => (
                                     <div key={item.id} className="asset-card">
                                         <div className="asset-image">
                                             <div className="asset-image-placeholder">📱</div>
@@ -218,7 +232,7 @@ export function UserDashboardPage() {
                                                 반납예정일: {item.expectedReturn}
                                             </p>
                                         </div>
-                                        <button 
+                                        <button
                                             className="primary-btn"
                                             onClick={() => handleGoToReturnDetail(item.id)}
                                         >
@@ -256,7 +270,9 @@ export function UserDashboardPage() {
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <div className="member-info">
-                                            <h3 className="member-name">{getClubName(club.club_id)}</h3>
+                                            <h3 className="member-name">
+                                                동아리 '{clubNames[club.club_id] || '로딩중...'}'
+                                            </h3>
                                         </div>
                                     </div>
                                 ))}

@@ -357,8 +357,40 @@ export const logout = async (): Promise<{ success: boolean; error?: string }> =>
     }
 };
 
-// 더미 물품 데이터 (API 연동 전 테스트용) - mocks에서 import
-import { dummyItemsData } from '@/mocks/data';
+// 동아리 정보 타입
+export interface Club {
+    id: number;
+    name: string;
+    description: string;
+    club_code: string;
+}
+
+// 동아리 정보 조회 (GET /api/clubs/{club_id})
+export const getClub = async (clubId: number): Promise<{ success: boolean; data?: Club; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/clubs/${clubId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            const result: Club = await response.json();
+            return { success: true, data: result };
+        } else {
+            return { success: false, error: '동아리 정보를 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get club error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
 
 // 동아리 물품 목록 조회
 export const getClubItems = async (clubId: number): Promise<{ success: boolean; data?: ClubItemsResponse; error?: string }> => {
@@ -379,20 +411,10 @@ export const getClubItems = async (clubId: number): Promise<{ success: boolean; 
             const result: ClubItemsResponse = await response.json();
             return { success: true, data: result };
         } else {
-            // API 실패 시 더미 데이터 반환 (개발용)
-            const dummyData = dummyItemsData[clubId];
-            if (dummyData) {
-                return { success: true, data: dummyData };
-            }
             return { success: false, error: '물품 목록을 불러올 수 없습니다.' };
         }
     } catch (error) {
         console.error('Get club items error:', error);
-        // 네트워크 에러 시 더미 데이터 반환 (개발용)
-        const dummyData = dummyItemsData[clubId];
-        if (dummyData) {
-            return { success: true, data: dummyData };
-        }
         return { success: false, error: 'Network error occurred' };
     }
 };
@@ -649,6 +671,172 @@ export const borrowItem = async (itemId: string, expectedReturnDate?: string): P
         console.error('Borrow error:', error);
         showNotification('네트워크 오류가 발생했습니다.', 'error');
         return { success: false, error: 'Network error' };
+    }
+};
+
+// 관리자: 물품 추가 타입
+interface AddAssetRequest {
+    name: string;
+    description: string;
+    category_id: number;
+    quantity: number;
+    location: string;
+}
+
+// 관리자: 물품 추가
+export const addAsset = async (data: AddAssetRequest): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch('/api/admin/assets', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.status === 201) {
+            showNotification('물품이 추가되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            return { success: false, error: '물품 추가에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Add asset error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 자산 타입
+export interface Asset {
+    id: number;
+    name: string;
+    status: number;
+    description: string;
+    category_id: number;
+    category_name: string;
+    total_quantity: number;
+    available_quantity: number;
+    location: string;
+    created_at: string;
+}
+
+// 자산 목록 조회 (GET /api/assets/{club_id})
+export const getAssets = async (clubId: number): Promise<{ success: boolean; data?: Asset[]; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/assets/${clubId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            const result: Asset[] = await response.json();
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else {
+            return { success: false, error: '자산 목록을 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get assets error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 관리자: 자산 수정 타입
+interface UpdateAssetRequest {
+    name?: string;
+    description?: string;
+    category_id?: number;
+    quantity?: number;
+    location?: string;
+}
+
+// 관리자: 자산 수정 (PATCH /api/admin/assets/{asset_id})
+export const updateAsset = async (assetId: number, data: UpdateAssetRequest): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/admin/assets/${assetId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.status === 200) {
+            showNotification('물품이 수정되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            return { success: false, error: '물품 수정에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Update asset error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 관리자: 자산 삭제 (DELETE /api/admin/assets/{asset_id})
+export const deleteAsset = async (assetId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const response = await fetch(`/api/admin/assets/${assetId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (response.status === 204) {
+            showNotification('물품이 삭제되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else {
+            return { success: false, error: '물품 삭제에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Delete asset error:', error);
+        return { success: false, error: 'Network error occurred' };
     }
 };
 
