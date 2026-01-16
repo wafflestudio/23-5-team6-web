@@ -19,8 +19,7 @@ interface LocationState {
 }
 
 export function ReturnDetailPage() {
-    // API 명세상 실제로는 rentalId를 사용하므로 이름을 명확히 합니다.
-    const { itemId: rentalId } = useParams(); 
+    const { item_id: rentalId } = useParams<{ item_id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const locationState = location.state as LocationState | null;
