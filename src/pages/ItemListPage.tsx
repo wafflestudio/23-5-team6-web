@@ -1,66 +1,71 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getClubItems } from '@/api/client';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getClubItems, borrowItem } from '@/api/client'; // borrowItem 함수가 api/client에 있어야 함
 import { clubNames } from '@/mocks/data';
 import type { ClubItem } from '@/api/client';
 import '@/styles/App.css';
 
-const ITEMS_PER_PAGE = 10; // 5x2 grid
-
-interface LocationState {
-    fromTab?: 'borrowed' | 'clubs';
-}
+const ITEMS_PER_PAGE = 10;
 
 export function ItemListPage() {
     const { clubId } = useParams<{ clubId: string }>();
     const navigate = useNavigate();
-    const location = useLocation();
-    const locationState = location.state as LocationState | null;
 
+    // 상태 관리
     const [items, setItems] = useState<ClubItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedItem, setSelectedItem] = useState<ClubItem | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [returnDate, setReturnDate] = useState('');
 
     const clubIdNum = parseInt(clubId || '0', 10);
     const clubName = clubNames[clubIdNum] || `동아리 ${clubId}`;
 
-    // 페이지네이션 계산
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const currentItems = items.slice(startIndex, endIndex);
-
-    // 뒤로가기 핸들러 - 이전 탭 상태 전달
-    const handleGoBack = () => {
-        navigate('/', { state: { tab: locationState?.fromTab || 'clubs' } });
+    // 데이터 패칭 함수
+    const fetchItems = async () => {
+        setLoading(true);
+        const result = await getClubItems(clubIdNum);
+        if (result.success && result.data) {
+            setItems(result.data.items);
+        } else {
+            setError(result.error || '물품을 불러오는데 실패했습니다.');
+        }
+        setLoading(false);
     };
 
     useEffect(() => {
-        const fetchItems = async () => {
-            setLoading(true);
-            const result = await getClubItems(clubIdNum);
-            if (result.success && result.data) {
-                setItems(result.data.items);
-            } else {
-                setError(result.error || '물품을 불러오는데 실패했습니다.');
-            }
-            setLoading(false);
-        };
-
         if (clubIdNum) {
             fetchItems();
         }
     }, [clubIdNum]);
 
+    // 대여 버튼 클릭 핸들러
+    const handleRentClick = (item: ClubItem) => {
+        setSelectedItem(item);
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 7);
+        setReturnDate(defaultDate.toISOString().split('T')[0]);
+        setIsModalOpen(true);
+    };
+
+    // 대여 확정 핸들러
+    const handleConfirmBorrow = async () => {
+        if (!selectedItem) return;
+        const result = await borrowItem(selectedItem.item_id, returnDate);
+        if (result.success) {
+            setIsModalOpen(false);
+            fetchItems(); // 목록 새로고침
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'available':
-                return <span className="status-badge available">대여 가능</span>;
-            case 'borrowed':
-                return <span className="status-badge borrowed">대여 중</span>;
-            default:
-                return <span className="status-badge">{status}</span>;
+            case 'returned': return <span className="status-badge available">대여 가능</span>;
+            case 'borrowed': return <span className="status-badge borrowed">대여 중</span>;
+            case 'overdue': return <span className="status-badge overdue">연체됨</span>;
+            default: return <span className="status-badge">{status}</span>;
         }
     };
 
@@ -74,12 +79,16 @@ export function ItemListPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // 페이지네이션 계산
+    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const currentItems = items.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     return (
         <div className="container">
-
             <main className="main-content">
-                <button className="back-btn" onClick={handleGoBack}>
-                    ← 대시보드
+                <button className="back-btn" onClick={() => navigate('/clubs')}>
+                    ← 동아리 목록
                 </button>
                 <h2>{clubName}</h2>
                 <p className="page-subtitle">물품 목록 ({items.length}개)</p>
@@ -99,7 +108,11 @@ export function ItemListPage() {
                                         <h3 className="item-name">{item.name}</h3>
                                         {getStatusBadge(item.status)}
                                     </div>
-                                    {item.status === 'borrowed' && (
+                                    {item.status === 'returned' || item.status === 'available' ? (
+                                        <button className="rent-btn" onClick={() => handleRentClick(item)}>
+                                            대여하기
+                                        </button>
+                                    ) : (
                                         <div className="item-details">
                                             {item.current_holder && (
                                                 <p className="item-holder">대여자: {item.current_holder}</p>
@@ -115,34 +128,38 @@ export function ItemListPage() {
 
                         {totalPages > 1 && (
                             <div className="pagination">
-                                <button
-                                    className="pagination-btn"
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                >
-                                    ←
-                                </button>
+                                <button className="pagination-btn" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>←</button>
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        className={`pagination-btn ${page === currentPage ? 'active' : ''}`}
-                                        onClick={() => handlePageChange(page)}
-                                    >
-                                        {page}
-                                    </button>
+                                    <button key={page} className={`pagination-btn ${page === currentPage ? 'active' : ''}`} onClick={() => handlePageChange(page)}>{page}</button>
                                 ))}
-                                <button
-                                    className="pagination-btn"
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                >
-                                    →
-                                </button>
+                                <button className="pagination-btn" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
                             </div>
                         )}
                     </>
                 )}
             </main>
+
+            {isModalOpen && selectedItem && (
+                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h3>대여 신청: {selectedItem.name}</h3>
+                        <div className="form-group" style={{ margin: '20px 0' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>반납 예정일</label>
+                            <input 
+                                type="date" 
+                                value={returnDate} 
+                                onChange={(e) => setReturnDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
+                            <button className="confirm-btn" onClick={handleConfirmBorrow}>대여 확정</button>
+                            <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>취소</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -26,7 +26,7 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
             {
                 item_id: 101,
                 name: '캐논 DSLR 카메라',
-                status: 'available',
+                status: 'returned',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,
@@ -42,7 +42,7 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
             {
                 item_id: 103,
                 name: '조명 세트',
-                status: 'available',
+                status: 'returned',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,
@@ -63,7 +63,7 @@ export const dummyItemsData: Record<number, ClubItemsResponse> = {
             {
                 item_id: 202,
                 name: '기타 앰프',
-                status: 'available',
+                status: 'returned',
                 borrowed_at: null,
                 expected_return_date: null,
                 current_holder: null,

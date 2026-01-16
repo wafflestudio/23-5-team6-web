@@ -1,21 +1,13 @@
 :root {
-  /* New color theme */
-  --primary-color: #5979BA;
-  /* rgb(89, 121, 186) - Medium Blue */
-  --primary-hover: #4a68a3;
-  /* Darker variant for hover */
-  --primary-light: #8CCEE3;
-  /* rgb(140, 206, 227) - Light Cyan */
-  --text-color: #2E3D57;
-  /* rgb(46, 61, 87) - Dark Navy */
-  --text-dark: #2E3D57;
-  --bg-color: #ffffff;
-  --gray-200: #e5e7eb;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --glass-bg: rgba(89, 121, 186, 0.04);
-  --glass-border: rgba(89, 121, 186, 0.15);
-  --card-bg: #ffffff;
+  --primary-color: #6366f1;
+  --primary-hover: #4f46e5;
+  --text-color: #000000;
+  --text-dark: #1e293b;
+  --bg-color: #0f172a;
+  --gray-200: #334155;
+  --gray-500: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
 }
 
 /* Animated gradient background */
@@ -114,7 +106,7 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
   cursor: pointer;
-  background: linear-gradient(135deg, #8CCEE3, #5979BA);
+  background: linear-gradient(135deg, #a5b4fc, #818cf8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -138,14 +130,14 @@ body {
 }
 
 .text-btn:hover {
-  color: var(--primary-color);
-  background: rgba(89, 121, 186, 0.08);
+  color: var(--text-color);
+  background: var(--glass-bg);
 }
 
 .text-btn.active {
   font-weight: 600;
-  color: var(--primary-color);
-  background: rgba(89, 121, 186, 0.1);
+  color: var(--text-color);
+  background: var(--glass-bg);
 }
 
 /* 8. CONTENT - 헤더 높이만큼 상단 여백 */
@@ -187,7 +179,7 @@ h2 {
   font-size: 1rem;
   outline: none;
   transition: all 0.2s ease;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-color);
 }
 
@@ -197,8 +189,8 @@ h2 {
 
 .form-group input:focus {
   border-color: var(--primary-color);
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(89, 121, 186, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .submit-btn {
@@ -212,12 +204,12 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(89, 121, 186, 0.3);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(89, 121, 186, 0.4);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .primary-btn {
@@ -230,12 +222,12 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(89, 121, 186, 0.3);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .primary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(89, 121, 186, 0.4);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .card {
@@ -334,7 +326,7 @@ h2 {
 }
 
 .club-card:hover {
-  background: rgba(89, 121, 186, 0.05);
+  background: rgba(255, 255, 255, 0.12);
   transform: translateX(4px);
   border-color: var(--primary-color);
 }
@@ -382,7 +374,7 @@ h2 {
 }
 
 .item-card:hover {
-  background: rgba(89, 121, 186, 0.05);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--primary-color);
 }
 
@@ -465,7 +457,7 @@ h2 {
 }
 
 .back-btn:hover {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 /* Loading & Empty states */
@@ -502,7 +494,7 @@ h2 {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: rgba(89, 121, 186, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--primary-color);
 }
 
@@ -525,21 +517,21 @@ h2 {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   border: none;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(89, 121, 186, 0.4);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
   transition: all 0.2s ease;
   z-index: 1000;
 }
 
 .admin-fab:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(89, 121, 186, 0.5);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);
 }
 
 .fab-badge {
@@ -576,7 +568,7 @@ h2 {
 }
 
 .modal-content {
-  background: #ffffff;
+  background: var(--bg-color);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   width: 100%;
@@ -584,7 +576,7 @@ h2 {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
 .modal-header {
@@ -611,7 +603,7 @@ h2 {
 }
 
 .modal-close:hover {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .modal-body {
