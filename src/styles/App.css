@@ -1,13 +1,14 @@
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --text-color: #000000;
-  --text-dark: #1e293b;
-  --bg-color: #0f172a;
-  --gray-200: #334155;
-  --gray-500: #64748b;
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --primary-color: #5979BA;
+  --primary-hover: #4a6aa8;
+  --accent-color: #8CCEE3;
+  --text-color: #2E3D57;
+  --text-dark: #2E3D57;
+  --bg-color: #FFFFFF;
+  --gray-200: #e5e7eb;
+  --gray-500: #6b7280;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(89, 121, 186, 0.25);
 }
 
 /* Animated gradient background */
