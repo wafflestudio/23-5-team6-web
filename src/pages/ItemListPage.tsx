@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getClubItems, borrowItem } from '@/api/client'; // borrowItem 함수가 api/client에 있어야 함
 import { clubNames } from '@/mocks/data';
@@ -8,6 +8,7 @@ import '@/styles/App.css';
 const ITEMS_PER_PAGE = 10;
 
 export function ItemListPage() {
+    const [refreshKey, setRefreshKey] = useState(0);
     const { clubId } = useParams<{ clubId: string }>();
     const navigate = useNavigate();
 
@@ -23,23 +24,21 @@ export function ItemListPage() {
     const clubIdNum = parseInt(clubId || '0', 10);
     const clubName = clubNames[clubIdNum] || `동아리 ${clubId}`;
 
-    // 데이터 패칭 함수
-    const fetchItems = useCallback(async () => {
-        setLoading(true);
-        const result = await getClubItems(clubIdNum);
-        if (result.success && result.data) {
-            setItems(result.data.items);
-        } else {
-            setError(result.error || '물품을 불러오는데 실패했습니다.');
-        }
-        setLoading(false);
-    }, [clubIdNum]);
-
     useEffect(() => {
-        if (clubIdNum) {
+            const fetchItems = async () => {
+                if (!clubIdNum) return;
+                setLoading(true);
+                const result = await getClubItems(clubIdNum);
+                if (result.success && result.data) {
+                    setItems(result.data.items);
+                } else {
+                    setError(result.error || '물품을 불러오는데 실패했습니다.');
+                }
+                setLoading(false);
+            };
+
             fetchItems();
-        }
-    }, [fetchItems, clubIdNum]);
+        }, [clubIdNum, refreshKey])
 
     // 대여 버튼 클릭 핸들러
     const handleRentClick = (item: ClubItem) => {
@@ -56,7 +55,7 @@ export function ItemListPage() {
         const result = await borrowItem(selectedItem.item_id, returnDate);
         if (result.success) {
             setIsModalOpen(false);
-            fetchItems(); // 목록 새로고침
+            setRefreshKey(prev => prev + 1); // 목록 새로고침
         }
     };
 
