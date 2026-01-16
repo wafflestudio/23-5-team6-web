@@ -44,20 +44,6 @@ const getInitialTab = (locationState: LocationState | null): TabType => {
     return 'borrowed';
 };
 
-// permission 값에 따른 상태 태그
-const getPermissionTag = (permission: number) => {
-    switch (permission) {
-        case 0:
-            return <span className="status-tag approved">일반 회원</span>;
-        case 1:
-            return <span className="status-tag approved" style={{ background: 'rgba(89, 121, 186, 0.15)', color: '#5979BA', borderColor: 'rgba(89, 121, 186, 0.3)' }}>관리자</span>;
-        case 2:
-            return <span className="status-tag pending">가입 대기</span>;
-        default:
-            return <span className="status-tag">알 수 없음</span>;
-    }
-};
-
 // 동아리 이름 가져오기
 const getClubName = (clubId: number): string => {
     return clubNameMap[clubId] || `동아리 #${clubId}`;
@@ -255,10 +241,6 @@ export function UserDashboardPage() {
                                     >
                                         <div className="member-info">
                                             <h3 className="member-name">{getClubName(club.club_id)}</h3>
-                                            <p className="member-email">Club ID: {club.club_id}</p>
-                                        </div>
-                                        <div className="member-status">
-                                            {getPermissionTag(club.permission)}
                                         </div>
                                     </div>
                                 ))}
