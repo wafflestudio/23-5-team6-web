@@ -41,14 +41,14 @@ export function UserDashboardPage() {
     const [clubNames, setClubNames] = useState<Record<number, string>>({});
 
     // 대여 항목 상태 (TODO: 대여 목록 API 연동 필요)
-    const [borrowedItems, setBorrowedItems] = useState<Array<{
+    const [borrowedItems] = useState<Array<{
         id: number;
         name: string;
         clubName: string;
         borrowedAt: string;
         expectedReturn: string;
     }>>([]);
-    const [borrowedLoading, setBorrowedLoading] = useState(false);
+    const [borrowedLoading] = useState(false);
 
     // 탭 변경 시 sessionStorage에 저장
     useEffect(() => {
