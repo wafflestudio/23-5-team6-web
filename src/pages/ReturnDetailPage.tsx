@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { returnItem } from '@/api/client';
 import '@/styles/App.css';
 
+
 interface ItemInfo {
     id: number;
     name: string;
@@ -17,23 +18,21 @@ interface LocationState {
 }
 
 export function ReturnDetailPage() {
-    const { itemId } = useParams();
+    const { item_id: rentalId } = useParams<{ item_id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const locationState = location.state as LocationState | null;
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const item = locationState?.item;
 
-    // 사진 업로드를 위한 상태 및 Ref
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 사진 업로드 클릭 핸들러
     const handleUploadClick = () => {
         fileInputRef.current?.click();
     };
 
-    // 파일 선택 시 미리보기 생성
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -47,27 +46,37 @@ export function ReturnDetailPage() {
     };
 
     const handleReturnSubmit = async () => {
-        // 1. 사진 업로드 여부 체크
-        if (!imagePreview) {
+        if (!imagePreview || !selectedFile) {
             alert('반납 확인을 위해 물품 사진을 업로드해주세요.');
             return;
         }
 
-        if (!itemId) {
-            alert('물품 정보를 불러올 수 없습니다.');
+        if (!rentalId) {
+            alert('대여 정보를 불러올 수 없습니다.');
             return;
         }
 
-        // 2. 여기에 실제 API 호출 로직이 들어갑니다.
-       const result = await returnItem(itemId, selectedFile!);
+        try {
+            setIsSubmitting(true);
+            
+            // client.ts에 정의된 returnItem 호출
+            const result = await returnItem(rentalId, selectedFile);
 
-        // 3. 결과에 따른 알림 처리
-        // state를 통해 'borrowed' 탭을 활성화하도록 전달합니다.
-        if (result.success){
-            alert('반납 신청이 완료되었습니다.');
-            navigate('/user/dashboard', { state: { tab: 'borrowed' }, replace: true });
-        } else {
-        alert('반납 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
+            if (result.success) {
+                // result.data에 API 명세에 적힌 ReturnResponse가 담겨옵니다.
+                console.log('반납 완료 데이터:', result.data);
+                
+                // 성공 시 대여 목록 탭으로 이동
+                navigate('/user/dashboard', { 
+                    state: { tab: 'borrowed' }, 
+                    replace: true 
+                });
+            }
+            // 에러 처리는 client.ts의 showNotification에서 이미 처리됨
+        } catch (error) {
+            console.error('Return submission error:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -87,7 +96,6 @@ export function ReturnDetailPage() {
     return (
         <div className="container">
             <main className="main-content">
-                {/* 1. 상단 물품 정보 카드 (image_121969.png 레이아웃) */}
                 <div className="card return-info-card" style={{ border: 'none', background: 'transparent' }}>
                     <div className="asset-info-section" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                         <div className="asset-image-placeholder" style={{ width: '120px', height: '120px', borderRadius: '20px', fontSize: '3rem', background: '#f8f9fa' }}>
@@ -102,7 +110,6 @@ export function ReturnDetailPage() {
                     </div>
                 </div>
 
-                {/* 2. 사진 업로드 영역 (image_121969.png의 회색 박스) */}
                 <div 
                     className="upload-zone" 
                     onClick={handleUploadClick}
@@ -115,9 +122,10 @@ export function ReturnDetailPage() {
                         flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        cursor: 'pointer',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
                         overflow: 'hidden',
-                        border: imagePreview ? '2px solid #5979BA' : 'none'
+                        border: imagePreview ? '2px solid #5979BA' : 'none',
+                        opacity: isSubmitting ? 0.7 : 1
                     }}
                 >
                     {imagePreview ? (
@@ -130,30 +138,31 @@ export function ReturnDetailPage() {
                     )}
                 </div>
 
-                {/* 숨겨진 파일 Input */}
                 <input 
                     type="file" 
                     accept="image/*"
                     capture="environment"
                     ref={fileInputRef} 
                     onChange={handleFileChange} 
-                    style={{ display: 'none' }} 
+                    style={{ display: 'none' }}
+                    disabled={isSubmitting}
                 />
 
-                {/* 3. 하단 반납하기 버튼 */}
                 <button 
                     className="submit-btn" 
                     onClick={handleReturnSubmit}
+                    disabled={isSubmitting}
                     style={{ 
                         marginTop: '60px', 
-                        backgroundColor: '#373F47', /* 사진 속 어두운 회색 버튼색 */
+                        backgroundColor: isSubmitting ? '#999' : '#373F47',
                         width: '100%',
                         padding: '18px',
                         borderRadius: '12px',
-                        fontSize: '1.1rem'
+                        fontSize: '1.1rem',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer'
                     }}
                 >
-                    반납하기
+                    {isSubmitting ? '반납 처리 중...' : '반납하기'}
                 </button>
             </main>
         </div>
