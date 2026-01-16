@@ -53,8 +53,7 @@ export function ItemListPage() {
     // 대여 확정 핸들러
     const handleConfirmBorrow = async () => {
         if (!selectedItem) return;
-        const returnDateTimestamp = new Date(returnDate).getTime();
-        const result = await borrowItem(selectedItem.item_id, returnDateTimestamp);
+        const result = await borrowItem(selectedItem.item_id, returnDate);
         if (result.success) {
             setIsModalOpen(false);
             fetchItems(); // 목록 새로고침
