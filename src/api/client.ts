@@ -690,7 +690,7 @@ export const deleteClubMember = async (memberId: number): Promise<{ success: boo
             method: 'DELETE',
         });
 
-        if (response.status === 200) {
+        if (response.status === 200 || response.status === 204) {
             showNotification('멤버가 삭제되었습니다.');
             return { success: true };
         } else if (response.status === 401) {
