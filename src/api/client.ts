@@ -172,6 +172,96 @@ export const isLoggedIn = (): boolean => {
     return !!getAccessToken();
 };
 
+// 토큰 갱신 중복 방지를 위한 플래그
+let isRefreshing = false;
+let refreshPromise: Promise<{ success: boolean; newAccessToken?: string }> | null = null;
+
+// 토큰 갱신 (내부용 - 중복 호출 방지)
+const doRefreshToken = async (): Promise<{ success: boolean; newAccessToken?: string }> => {
+    const currentRefreshToken = getRefreshToken();
+    if (!currentRefreshToken) {
+        return { success: false };
+    }
+
+    try {
+        const response = await fetch('/api/auth/refresh', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${currentRefreshToken}`,
+            },
+        });
+
+        if (response.status === 200) {
+            const newAccessToken = await response.text();
+            // 따옴표 제거 (JSON 문자열로 올 경우)
+            const cleanToken = newAccessToken.replace(/^"|"$/g, '');
+            memoryTokenCache.access = cleanToken;
+            sessionStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
+            console.log('Token refreshed successfully');
+            return { success: true, newAccessToken: cleanToken };
+        } else {
+            console.error('Token refresh failed:', response.status);
+            clearTokens();
+            return { success: false };
+        }
+    } catch (error) {
+        console.error('Token refresh error:', error);
+        clearTokens();
+        return { success: false };
+    }
+};
+
+// 인증이 필요한 API 요청을 위한 wrapper (401 시 자동 토큰 갱신 및 재시도)
+export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const accessToken = getAccessToken();
+
+    // 헤더에 Authorization 추가
+    const headers = new Headers(options.headers || {});
+    if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    // 401이 아니면 그대로 반환
+    if (response.status !== 401) {
+        return response;
+    }
+
+    // 401인 경우 토큰 갱신 시도
+    console.log('Got 401, attempting token refresh...');
+
+    // 이미 갱신 중이면 기다림
+    if (isRefreshing && refreshPromise) {
+        const result = await refreshPromise;
+        if (result.success && result.newAccessToken) {
+            headers.set('Authorization', `Bearer ${result.newAccessToken}`);
+            return fetch(url, { ...options, headers });
+        }
+        return response; // 갱신 실패 시 원래 401 응답 반환
+    }
+
+    // 토큰 갱신 시작
+    isRefreshing = true;
+    refreshPromise = doRefreshToken();
+
+    try {
+        const result = await refreshPromise;
+        if (result.success && result.newAccessToken) {
+            // 새 토큰으로 원래 요청 재시도
+            headers.set('Authorization', `Bearer ${result.newAccessToken}`);
+            return fetch(url, { ...options, headers });
+        }
+        // 갱신 실패 - 로그인 페이지로 이동
+        showToast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error');
+        window.location.href = '/login';
+        return response;
+    } finally {
+        isRefreshing = false;
+        refreshPromise = null;
+    }
+};
+
 // Toast 알림 함수 - Toast 컴포넌트와 연동
 import { showToast } from '@/utils/toast';
 
@@ -365,19 +455,30 @@ export interface Club {
     club_code: string;
 }
 
+// 관리자의 동아리 목록 조회 (GET /api/clubs)
+export const getMyClubs = async (): Promise<{ success: boolean; data?: Club[]; error?: string }> => {
+    try {
+        const response = await authFetch('/api/clubs', {
+            method: 'GET',
+        });
+
+        if (response.status === 200) {
+            const result: Club[] = await response.json();
+            return { success: true, data: result };
+        } else {
+            return { success: false, error: '동아리 목록을 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get my clubs error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
 // 동아리 정보 조회 (GET /api/clubs/{club_id})
 export const getClub = async (clubId: number): Promise<{ success: boolean; data?: Club; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/clubs/${clubId}`, {
+        const response = await authFetch(`/api/clubs/${clubId}`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -395,16 +496,8 @@ export const getClub = async (clubId: number): Promise<{ success: boolean; data?
 // 동아리 물품 목록 조회
 export const getClubItems = async (clubId: number): Promise<{ success: boolean; data?: ClubItemsResponse; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/clubs/${clubId}/items`, {
+        const response = await authFetch(`/api/clubs/${clubId}/items`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -422,16 +515,8 @@ export const getClubItems = async (clubId: number): Promise<{ success: boolean; 
 // 관리자: 가입 신청 목록 조회
 export const getApplyList = async (): Promise<{ success: boolean; data?: ApplyListItem[]; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch('/api/admin/applylist', {
+        const response = await authFetch('/api/admin/applylist', {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -453,15 +538,9 @@ export const getApplyList = async (): Promise<{ success: boolean; data?: ApplyLi
 // 관리자: 사용자 승인/거부
 export const approveUser = async (userId: string, approved: boolean): Promise<{ success: boolean; data?: ApproveUserResponse; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/admin/users/${userId}/approve`, {
+        const response = await authFetch(`/api/admin/users/${userId}/approve`, {
             method: 'PATCH',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ approved }),
@@ -503,17 +582,11 @@ interface ClubApplyResponse {
 // 동아리 가입 신청
 export const applyToClub = async (clubCode: string): Promise<{ success: boolean; data?: ClubApplyResponse; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
         const request: ClubApplyRequest = { club_code: clubCode };
 
-        const response = await fetch('/api/club/apply', {
+        const response = await authFetch('/api/club/apply', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(request),
@@ -567,11 +640,6 @@ export interface GetClubMembersParams {
 // - club_id 지정: 해당 동아리의 멤버 목록 (관리자용)
 export const getClubMembers = async (params?: GetClubMembersParams): Promise<{ success: boolean; data?: ClubMembersResponse; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
         // 쿼리 파라미터 구성
         const queryParams = new URLSearchParams();
         if (params?.club_id !== undefined) queryParams.append('club_id', params.club_id.toString());
@@ -585,11 +653,8 @@ export const getClubMembers = async (params?: GetClubMembersParams): Promise<{ s
             ? `/api/club-members/?${queryParams.toString()}`
             : '/api/club-members/';
 
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -602,7 +667,15 @@ export const getClubMembers = async (params?: GetClubMembersParams): Promise<{ s
             const errorMessage = errorData.detail.map(d => d.msg).join(', ');
             return { success: false, error: errorMessage || '유효성 검증 실패' };
         } else {
-            return { success: false, error: '멤버 목록을 불러올 수 없습니다.' };
+            // 실제 에러 응답 확인을 위한 로깅
+            console.error('getClubMembers failed:', response.status);
+            try {
+                const errorData = await response.json();
+                console.error('Error details:', errorData);
+                return { success: false, error: `멤버 목록을 불러올 수 없습니다. (${response.status}: ${errorData.detail || JSON.stringify(errorData)})` };
+            } catch {
+                return { success: false, error: `멤버 목록을 불러올 수 없습니다. (${response.status})` };
+            }
         }
     } catch (error) {
         console.error('Get club members error:', error);
@@ -613,16 +686,8 @@ export const getClubMembers = async (params?: GetClubMembersParams): Promise<{ s
 // 동아리원 삭제
 export const deleteClubMember = async (memberId: number): Promise<{ success: boolean; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/club-members/${memberId}`, {
+        const response = await authFetch(`/api/club-members/${memberId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -646,11 +711,9 @@ export const deleteClubMember = async (memberId: number): Promise<{ success: boo
 // 사용자: 대여 신청 API 함수
 export const borrowItem = async (itemId: string, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        const response = await fetch('/api/rentals/borrow', {
+        const response = await authFetch('/api/rentals/borrow', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -678,6 +741,7 @@ export const borrowItem = async (itemId: string, expectedReturnDate?: string): P
 interface AddAssetRequest {
     name: string;
     description: string;
+    club_id: number;
     category_id: number;
     quantity: number;
     location: string;
@@ -686,15 +750,9 @@ interface AddAssetRequest {
 // 관리자: 물품 추가
 export const addAsset = async (data: AddAssetRequest): Promise<{ success: boolean; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch('/api/admin/assets', {
+        const response = await authFetch('/api/admin/assets', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
@@ -712,7 +770,14 @@ export const addAsset = async (data: AddAssetRequest): Promise<{ success: boolea
             const errorMessage = errorData.detail.map(d => d.msg).join(', ');
             return { success: false, error: errorMessage || '유효성 검증 실패' };
         } else {
-            return { success: false, error: '물품 추가에 실패했습니다.' };
+            // 실제 에러 메시지 파싱
+            try {
+                const errorData = await response.json();
+                console.error('Add asset error response:', response.status, errorData);
+                return { success: false, error: errorData.detail || `물품 추가에 실패했습니다. (${response.status})` };
+            } catch {
+                return { success: false, error: `물품 추가에 실패했습니다. (${response.status})` };
+            }
         }
     } catch (error) {
         console.error('Add asset error:', error);
@@ -737,16 +802,8 @@ export interface Asset {
 // 자산 목록 조회 (GET /api/assets/{club_id})
 export const getAssets = async (clubId: number): Promise<{ success: boolean; data?: Asset[]; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/assets/${clubId}`, {
+        const response = await authFetch(`/api/assets/${clubId}`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 200) {
@@ -775,15 +832,9 @@ interface UpdateAssetRequest {
 // 관리자: 자산 수정 (PATCH /api/admin/assets/{asset_id})
 export const updateAsset = async (assetId: number, data: UpdateAssetRequest): Promise<{ success: boolean; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/admin/assets/${assetId}`, {
+        const response = await authFetch(`/api/admin/assets/${assetId}`, {
             method: 'PATCH',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
@@ -812,16 +863,8 @@ export const updateAsset = async (assetId: number, data: UpdateAssetRequest): Pr
 // 관리자: 자산 삭제 (DELETE /api/admin/assets/{asset_id})
 export const deleteAsset = async (assetId: number): Promise<{ success: boolean; error?: string }> => {
     try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const response = await fetch(`/api/admin/assets/${assetId}`, {
+        const response = await authFetch(`/api/admin/assets/${assetId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
         });
 
         if (response.status === 204) {
@@ -857,21 +900,12 @@ export const returnItem = async (
     imageFile: File
 ): Promise<{ success: boolean; data?: ReturnResponse; error?: string }> => {
     try {
-        // 기존 유틸리티 함수를 사용하여 세션/메모리에서 토큰 가져오기
-        const accessToken = getAccessToken(); 
-        if (!accessToken) {
-            return { success: false, error: '인증 정보가 없습니다.' };
-        }
-
         const formData = new FormData();
         formData.append('image', imageFile); // 서버에서 받을 키 이름 ('image') 
 
-        // 다른 API들과 일치하게 상대 경로(/api/...) 사용
-        const response = await fetch(`/api/rentals/${rentalId}/return`, {
+        // authFetch를 사용해서 자동 토큰 갱신
+        const response = await authFetch(`/api/rentals/${rentalId}/return`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
             body: formData,
         });
 
