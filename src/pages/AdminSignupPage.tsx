@@ -8,6 +8,7 @@ interface AdminSignupFormValues {
     name: string;
     email: string;
     password: string;
+    confirmPassword: string;
     clubName: string;
     clubDescription: string;
 }
@@ -16,6 +17,7 @@ const initialValues: AdminSignupFormValues = {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     clubName: '',
     clubDescription: '',
 };
@@ -34,6 +36,9 @@ const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
     }
     if (values.password.length < 8) {
         return '비밀번호는 8자 이상이어야 합니다.';
+    }
+    if (values.password !== values.confirmPassword) {
+        return '비밀번호가 일치하지 않습니다.';
     }
     if (!values.clubName.trim()) {
         return '동아리 이름을 입력해주세요.';
@@ -114,6 +119,19 @@ export function AdminSignupPage() {
                             required
                             minLength={8}
                             placeholder="8자 이상 입력하세요"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="confirmPassword">비밀번호 확인</label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            value={values.confirmPassword}
+                            onChange={handleChange}
+                            required
+                            placeholder="비밀번호를 다시 입력하세요"
                         />
                     </div>
 

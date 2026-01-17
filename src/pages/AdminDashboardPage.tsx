@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getApplyList, approveUser, getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, type ApplyListItem, type ClubMember, type Asset } from '@/api/client';
+import { getApplyList, approveUser, getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, type ApplyListItem, type ClubMember, type Asset } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -31,7 +31,10 @@ export function AdminDashboardPage() {
     const [newAssetName, setNewAssetName] = useState('');
     const [newAssetDescription, setNewAssetDescription] = useState('');
     const [newAssetQuantity, setNewAssetQuantity] = useState(1);
+    const [newAssetLocation, setNewAssetLocation] = useState('');
+    const [newAssetCategoryId, setNewAssetCategoryId] = useState(1);
     const [isAddingAsset, setIsAddingAsset] = useState(false);
+    const [addAssetError, setAddAssetError] = useState<string | null>(null);
 
     // 자산 목록 상태
     const [assets, setAssets] = useState<Asset[]>([]);
@@ -53,6 +56,8 @@ export function AdminDashboardPage() {
     const [membersLoading, setMembersLoading] = useState(true);
     const [membersError, setMembersError] = useState<string | null>(null);
     const [myClubId, setMyClubId] = useState<number | null>(null);
+    const [myClubName, setMyClubName] = useState<string>('');
+    const [myClubCode, setMyClubCode] = useState<string>('');
 
     // 자산 목록 가져오기 함수
     const fetchAssets = async (clubId: number) => {
@@ -73,28 +78,27 @@ export function AdminDashboardPage() {
             setMembersLoading(true);
             setMembersError(null);
 
-            // 1. 먼저 자신의 club_id를 가져옴
-            const myClubsResult = await getClubMembers();
-            if (!myClubsResult.success || !myClubsResult.data || myClubsResult.data.items.length === 0) {
-                setMembersError('동아리 정보를 불러올 수 없습니다.');
+            // 1. GET /api/clubs로 관리자의 동아리 목록을 가져옴
+            const clubsResult = await getMyClubs();
+            console.log('getMyClubs result:', clubsResult);
+
+            if (!clubsResult.success || !clubsResult.data || clubsResult.data.length === 0) {
+                setMembersError(`동아리 정보를 불러올 수 없습니다. (${clubsResult.error || '데이터 없음'})`);
                 setMembersLoading(false);
                 setAssetsLoading(false);
                 return;
             }
 
-            // 관리자(permission === 1)인 동아리 찾기
-            const adminClub = myClubsResult.data.items.find(item => item.permission === 1);
-            if (!adminClub) {
-                setMembersError('관리자 권한이 있는 동아리가 없습니다.');
-                setMembersLoading(false);
-                setAssetsLoading(false);
-                return;
-            }
+            // 첫 번째 동아리를 사용 (관리자는 보통 하나의 동아리만 관리)
+            const myClub = clubsResult.data[0];
+            console.log('My club:', myClub);
 
-            setMyClubId(adminClub.club_id);
+            setMyClubId(myClub.id);
+            setMyClubName(myClub.name);
+            setMyClubCode(myClub.club_code);
 
             // 2. 해당 동아리의 모든 멤버 조회
-            const membersResult = await getClubMembers({ club_id: adminClub.club_id });
+            const membersResult = await getClubMembers({ club_id: myClub.id });
             if (membersResult.success && membersResult.data) {
                 setClubMembers(membersResult.data.items);
             } else {
@@ -103,7 +107,7 @@ export function AdminDashboardPage() {
             setMembersLoading(false);
 
             // 3. 자산 목록 조회
-            fetchAssets(adminClub.club_id);
+            fetchAssets(myClub.id);
         };
 
         fetchClubData();
@@ -157,24 +161,39 @@ export function AdminDashboardPage() {
         setNewAssetName('');
         setNewAssetDescription('');
         setNewAssetQuantity(1);
+        setNewAssetLocation('');
+        setNewAssetCategoryId(1);
+        setAddAssetError(null);
         setShowAddAssetModal(true);
     };
 
     const handleAddAsset = async () => {
         if (!newAssetName.trim()) {
-            setError('물품 이름을 입력해주세요.');
+            setAddAssetError('물품 이름을 입력해주세요.');
+            return;
+        }
+
+        const qty = Number(newAssetQuantity);
+        if (!qty || qty < 1) {
+            setAddAssetError('수량은 1개 이상이어야 합니다.');
+            return;
+        }
+
+        if (!myClubId) {
+            setAddAssetError('동아리 정보가 없습니다.');
             return;
         }
 
         setIsAddingAsset(true);
-        setError(null);
+        setAddAssetError(null);
 
         const result = await addAsset({
             name: newAssetName.trim(),
             description: newAssetDescription.trim(),
-            category_id: 1,
-            quantity: newAssetQuantity,
-            location: '',
+            club_id: myClubId,
+            category_id: newAssetCategoryId,
+            quantity: qty,
+            location: newAssetLocation.trim(),
         });
 
         setIsAddingAsset(false);
@@ -182,11 +201,9 @@ export function AdminDashboardPage() {
         if (result.success) {
             setShowAddAssetModal(false);
             // 물품 목록 새로고침
-            if (myClubId) {
-                fetchAssets(myClubId);
-            }
+            fetchAssets(myClubId);
         } else {
-            setError(result.error || '물품 추가에 실패했습니다.');
+            setAddAssetError(result.error || '물품 추가에 실패했습니다.');
         }
     };
 
@@ -261,6 +278,19 @@ export function AdminDashboardPage() {
     return (
         <div className="container">
             <main className="main-content admin-dashboard">
+                {/* 동아리 정보 */}
+                {myClubName && (
+                    <div className="club-info-banner">
+                        <div className="club-info-content">
+                            <h2 className="club-name">{myClubName}</h2>
+                            <div className="club-code-container">
+                                <span className="club-code-label">동아리 코드:</span>
+                                <span className="club-code-value">{myClubCode}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* 탭 네비게이션 */}
                 <div className="admin-tabs">
                     <button
@@ -380,15 +410,45 @@ export function AdminDashboardPage() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label htmlFor="asset-quantity">수량</label>
+                                        <label htmlFor="asset-quantity">수량 *</label>
                                         <input
                                             id="asset-quantity"
-                                            type="number"
-                                            min={1}
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={newAssetQuantity}
-                                            onChange={(e) => setNewAssetQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setNewAssetQuantity(val === '' ? 0 : parseInt(val));
+                                            }}
                                         />
                                     </div>
+                                    <div className="form-group">
+                                        <label htmlFor="asset-category">카테고리 ID *</label>
+                                        <input
+                                            id="asset-category"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={newAssetCategoryId}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setNewAssetCategoryId(val === '' ? 0 : parseInt(val));
+                                            }}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="asset-location">위치 *</label>
+                                        <input
+                                            id="asset-location"
+                                            type="text"
+                                            value={newAssetLocation}
+                                            onChange={(e) => setNewAssetLocation(e.target.value)}
+                                            placeholder="예: 동아리방 선반"
+                                        />
+                                    </div>
+                                    {addAssetError && <p className="error-message">{addAssetError}</p>}
                                     <div className="form-actions">
                                         <button
                                             className="cancel-btn"
