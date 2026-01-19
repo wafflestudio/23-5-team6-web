@@ -3,6 +3,7 @@ import { checkBackendStatus } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { UserDashboardPage } from '@/pages/UserDashboardPage';
+import { KakaoMapPicker } from '@/components/KakaoMapPicker';
 import '@/styles/App.css';
 import { useState } from 'react';
 
@@ -137,6 +138,10 @@ export function MainPage() {
                             {location.error}
                         </p>
                     )}
+                </div>
+
+                <div className="card">
+                    <KakaoMapPicker />
                 </div>
             </main>
         </div>
