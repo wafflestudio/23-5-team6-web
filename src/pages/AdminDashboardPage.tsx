@@ -32,7 +32,7 @@ export function AdminDashboardPage() {
     const [newAssetDescription, setNewAssetDescription] = useState('');
     const [newAssetQuantity, setNewAssetQuantity] = useState(1);
     const [newAssetLocation, setNewAssetLocation] = useState('');
-    const [newAssetCategoryId, setNewAssetCategoryId] = useState(1);
+
     const [isAddingAsset, setIsAddingAsset] = useState(false);
     const [addAssetError, setAddAssetError] = useState<string | null>(null);
 
@@ -162,7 +162,7 @@ export function AdminDashboardPage() {
         setNewAssetDescription('');
         setNewAssetQuantity(1);
         setNewAssetLocation('');
-        setNewAssetCategoryId(1);
+
         setAddAssetError(null);
         setShowAddAssetModal(true);
     };
@@ -191,7 +191,6 @@ export function AdminDashboardPage() {
             name: newAssetName.trim(),
             description: newAssetDescription.trim(),
             club_id: myClubId,
-            category_id: newAssetCategoryId,
             quantity: qty,
             location: newAssetLocation.trim(),
         });
@@ -423,21 +422,7 @@ export function AdminDashboardPage() {
                                             }}
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label htmlFor="asset-category">카테고리 ID *</label>
-                                        <input
-                                            id="asset-category"
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            value={newAssetCategoryId}
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                                setNewAssetCategoryId(val === '' ? 0 : parseInt(val));
-                                            }}
-                                            placeholder="0"
-                                        />
-                                    </div>
+
                                     <div className="form-group">
                                         <label htmlFor="asset-location">위치 *</label>
                                         <input

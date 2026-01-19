@@ -742,7 +742,7 @@ interface AddAssetRequest {
     name: string;
     description: string;
     club_id: number;
-    category_id: number;
+    category_id?: number;
     quantity: number;
     location: string;
 }
