@@ -16,21 +16,21 @@ export function KakaoMapPicker({ onLocationSelect }: KakaoMapPickerProps) {
     const mapInstanceRef = useRef<kakao.maps.Map | null>(null);
     const markerRef = useRef<kakao.maps.Marker | null>(null);
     const [isMapOpen, setIsMapOpen] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(() => {
+        // Check if already loaded on initial render
+        return !!(window.kakao && window.kakao.maps);
+    });
     const [selectedCoords, setSelectedCoords] = useState<SelectedCoords | null>(null);
 
     // Load Kakao Maps SDK
     useEffect(() => {
+        // Already loaded
+        if (isLoaded) return;
+
         const kakaoKey = import.meta.env.VITE_KAKAO_MAP_KEY;
 
         if (!kakaoKey || kakaoKey === 'YOUR_KEY_HERE') {
             console.warn('Kakao Map API key is not configured');
-            return;
-        }
-
-        // Check if already loaded
-        if (window.kakao && window.kakao.maps) {
-            setIsLoaded(true);
             return;
         }
 
@@ -47,7 +47,7 @@ export function KakaoMapPicker({ onLocationSelect }: KakaoMapPickerProps) {
         return () => {
             // Cleanup script if needed
         };
-    }, []);
+    }, [isLoaded]);
 
     // Initialize map when opened
     useEffect(() => {
