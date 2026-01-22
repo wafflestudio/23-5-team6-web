@@ -947,6 +947,42 @@ export const deleteAsset = async (assetId: number): Promise<{ success: boolean; 
     }
 };
 
+// 관리자: 엑셀 업로드 타입
+interface ExcelUploadResponse {
+    message: string;
+    added_count: number;
+}
+
+// 관리자: 엑셀 파일을 통한 물품 대량 추가
+export const uploadExcelAssets = async (
+    clubId: number,
+    excelFile: File
+): Promise<{ success: boolean; data?: ExcelUploadResponse; error?: string }> => {
+    try {
+        const formData = new FormData();
+        // 'file'은 서버 API에서 정의한 파라미터 이름입니다.
+        formData.append('file', excelFile);
+
+        // authFetch를 사용하여 인증 토큰 자동 포함 및 갱신 처리
+        const response = await authFetch(`/api/admin/assets/${clubId}/bulk`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.status === 200) {
+            const data: ExcelUploadResponse = await response.json();
+            showNotification('엑셀 업로드가 완료되었습니다.', 'success');
+            return { success: true, data };
+        } else {
+            const errorData = await response.json().catch(() => ({ detail: '업로드 실패' }));
+            return { success: false, error: errorData.detail };
+        }
+    } catch (error) {
+        console.error('Excel upload error:', error);
+        return { success: false, error: '네트워크 오류가 발생했습니다.' };
+    }
+};
+
 // 사용자: 반납 관련 타입
 interface ReturnResponse {
     id: string;

@@ -88,6 +88,17 @@
     background: var(--primary-color);
 }
 
+.asset-tab-buttons {
+    display: flex;
+    gap: 3px;
+    align-items: right;
+}
+
+.upload-btn{
+    background: #2E3D57
+}
+
+
 .member-approve-btn {
     margin-left: auto;
     padding: 0.5rem 1rem;
