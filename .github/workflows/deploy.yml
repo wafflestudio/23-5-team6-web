@@ -22,6 +22,7 @@ jobs:
       - name: Build & Export
         env:
           VITE_KAKAO_MAP_KEY: ${{ secrets.VITE_KAKAO_MAP_KEY }}
+          VITE_EMAIL_API_URL: ${{ secrets.VITE_EMAIL_API_URL }}
         run: |
           yarn install
           yarn build
