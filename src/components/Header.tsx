@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg';
 
 export function Header() {
     const navigate = useNavigate();
@@ -16,8 +16,8 @@ export function Header() {
 
     return (
         <header className="app-header">
-            <div className="logo" onClick={() => navigate('/')}>
-                <img src={logo} alt="로고" style={{ height: '28px', display: 'block' }} />
+            <div className="logo-icon" onClick={() => navigate('/')}>
+                <img src={logo} alt="로고" style={{ height: '80px', display: 'block' }} />
             </div>
             <div className="auth-buttons">
                 {isLoggedIn ? (
