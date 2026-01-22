@@ -12,6 +12,7 @@ import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { AdminFAB } from '@/components/AdminFAB';
 import { ReturnDetailPage } from './pages/ReturnDetailPage';
 import { UserDashboardPage } from './pages/UserDashboardPage';
+import { MyPage } from '@/pages/MyPage';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/user/dashboard" element={<UserDashboardPage />} />
           <Route path="/return/detail/:itemId" element={<ReturnDetailPage />} />
+          <Route path="/mypage" element={<MyPage />} />
         </Routes>
         <AdminFAB />
         <ToastContainer />
