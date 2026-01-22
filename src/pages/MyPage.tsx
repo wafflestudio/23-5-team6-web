@@ -27,7 +27,7 @@ export function MyPage() {
             const fetchClubInfo = async () => {
                 const result = await getMyAdminClub();
                 if (result.success && result.data) {
-                    setClubId(result.data.club_id);
+                    // setClubId(result.data.club_id);
                     setClubName(result.data.club_name);
                     setCurrentClubCode(result.data.club_code);
                 }
