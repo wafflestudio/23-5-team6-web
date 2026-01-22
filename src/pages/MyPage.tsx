@@ -7,7 +7,7 @@ export function MyPage() {
     const { userName, isAdmin } = useAuth();
 
     // 클럽 정보 상태
-    const [clubId, setClubId] = useState<number | null>(null);
+    const [_clubId, setClubId] = useState<number | null>(null);
     const [clubName, setClubName] = useState('');
     const [currentClubCode, setCurrentClubCode] = useState('');
     const [newClubCode, setNewClubCode] = useState('');
