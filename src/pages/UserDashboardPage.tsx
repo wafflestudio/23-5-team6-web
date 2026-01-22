@@ -238,7 +238,7 @@ export function UserDashboardPage() {
                         <div className="filter-container" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                                onChange={(e) => setStatusFilter(e.target.value as '' | 'in_use' | 'returned')}
                                 style={{
                                     padding: '0.5rem',
                                     borderRadius: '0',
