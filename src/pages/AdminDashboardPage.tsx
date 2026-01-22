@@ -570,7 +570,7 @@ export function AdminDashboardPage() {
                                 {clubMembers.map((member) => (
                                     <div key={member.id} className="member-card">
                                         <div className="member-info">
-                                            <h3 className="member-name">사용자 {member.user_id}</h3>
+                                            <h3 className="member-name">사용자 {member.name}</h3>
                                             <p className="member-email">멤버 ID: {member.id}</p>
                                         </div>
                                         <div className="member-actions">
