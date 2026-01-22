@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { updateClubCode, getMyAdminClub } from '@/api/client';
 import '@/styles/App.css';
 
 export function MyPage() {
     const { userName, isAdmin } = useAuth();
+
+    // 클럽 정보 상태
+    const [clubId, setClubId] = useState<number | null>(null);
+    const [clubName, setClubName] = useState('');
+    const [currentClubCode, setCurrentClubCode] = useState('');
+    const [newClubCode, setNewClubCode] = useState('');
+    const [isUpdatingCode, setIsUpdatingCode] = useState(false);
+    const [codeUpdateResult, setCodeUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // 이메일 테스트 폼 상태
     const [recipientEmail, setRecipientEmail] = useState('');
@@ -11,6 +20,56 @@ export function MyPage() {
     const [emailMessage, setEmailMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // 관리자 클럽 정보 로드
+    useEffect(() => {
+        if (isAdmin) {
+            const fetchClubInfo = async () => {
+                const result = await getMyAdminClub();
+                if (result.success && result.data) {
+                    setClubId(result.data.club_id);
+                    setClubName(result.data.club_name);
+                    setCurrentClubCode(result.data.club_code);
+                }
+            };
+            fetchClubInfo();
+        }
+    }, [isAdmin]);
+
+    // 클럽 코드 수정 핸들러
+    const handleUpdateClubCode = async () => {
+        setIsUpdatingCode(true);
+        setCodeUpdateResult(null);
+
+        const result = await updateClubCode(newClubCode.trim());
+
+        if (result.success && result.data) {
+            setCurrentClubCode(result.data.club_code);
+            setNewClubCode('');
+            setCodeUpdateResult({ success: true, message: `클럽 코드가 "${result.data.club_code}"로 변경되었습니다.` });
+        } else {
+            setCodeUpdateResult({ success: false, message: result.error || '클럽 코드 수정에 실패했습니다.' });
+        }
+
+        setIsUpdatingCode(false);
+    };
+
+    // 무작위 재발급 핸들러
+    const handleRegenerateCode = async () => {
+        setIsUpdatingCode(true);
+        setCodeUpdateResult(null);
+
+        const result = await updateClubCode(''); // 빈 문자열 = 무작위 재발급
+
+        if (result.success && result.data) {
+            setCurrentClubCode(result.data.club_code);
+            setCodeUpdateResult({ success: true, message: `새 클럽 코드가 발급되었습니다: ${result.data.club_code}` });
+        } else {
+            setCodeUpdateResult({ success: false, message: result.error || '재발급에 실패했습니다.' });
+        }
+
+        setIsUpdatingCode(false);
+    };
 
     const handleSendEmail = async () => {
         if (!recipientEmail.trim()) {
@@ -112,7 +171,58 @@ export function MyPage() {
             <main className="main-content">
                 <div className="mypage-header">
                     <h1>{userName}님의 마이페이지</h1>
+                    {isAdmin && clubName && (
+                        <p className="section-description">관리 중인 동아리: {clubName}</p>
+                    )}
                 </div>
+
+                {/* 관리자 전용: 클럽 코드 관리 섹션 */}
+                {isAdmin && (
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
+                        <h2>🔑 클럽 코드 관리</h2>
+                        <p className="section-description">
+                            현재 코드: <strong>{currentClubCode || '로딩 중...'}</strong>
+                        </p>
+
+                        <div className="email-form">
+                            <div className="form-group">
+                                <label htmlFor="new-club-code">새 클럽 코드 (직접 지정)</label>
+                                <input
+                                    id="new-club-code"
+                                    type="text"
+                                    value={newClubCode}
+                                    onChange={(e) => setNewClubCode(e.target.value)}
+                                    placeholder="새 클럽 코드 입력"
+                                />
+                            </div>
+
+                            {codeUpdateResult && (
+                                <div className={`send-result ${codeUpdateResult.success ? 'success' : 'error'}`}>
+                                    {codeUpdateResult.message}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    className="send-email-btn"
+                                    onClick={handleUpdateClubCode}
+                                    disabled={isUpdatingCode || !newClubCode.trim()}
+                                    style={{ flex: 1 }}
+                                >
+                                    {isUpdatingCode ? '변경 중...' : '코드 변경'}
+                                </button>
+                                <button
+                                    className="send-email-btn"
+                                    onClick={handleRegenerateCode}
+                                    disabled={isUpdatingCode}
+                                    style={{ flex: 1, background: 'linear-gradient(135deg, #6b7280, #4b5563)' }}
+                                >
+                                    {isUpdatingCode ? '발급 중...' : '무작위 재발급'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* 관리자 전용: 이메일 테스트 섹션 */}
                 {isAdmin && (

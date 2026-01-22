@@ -616,6 +616,7 @@ export interface ClubMember {
     club_id: number;
     permission: number; // 0: 일반 회원, 1: 관리자, 2: 가입대기
     id: number;
+    name: string;
 }
 
 export interface ClubMembersResponse {
@@ -799,18 +800,16 @@ export interface Asset {
     created_at: string;
 }
 
-// 자산 목록 조회 (GET /api/assets/{club_id})
+// 자산 목록 조회 (GET /api/assets/{club_id}) - 인증 불필요
 export const getAssets = async (clubId: number): Promise<{ success: boolean; data?: Asset[]; error?: string }> => {
     try {
-        const response = await authFetch(`/api/assets/${clubId}`, {
+        const response = await fetch(`/api/assets/${clubId}`, {
             method: 'GET',
         });
 
         if (response.status === 200) {
             const result: Asset[] = await response.json();
             return { success: true, data: result };
-        } else if (response.status === 401) {
-            return { success: false, error: '인증이 만료되었습니다.' };
         } else {
             return { success: false, error: '자산 목록을 불러올 수 없습니다.' };
         }
@@ -935,5 +934,78 @@ export const returnItem = async (
         console.error('Return item error:', err);
         showNotification('네트워크 오류가 발생했습니다.', 'error');
         return { success: false, error: '서버와 통신 중 네트워크 오류가 발생했습니다.' };
+    }
+};
+
+// 클럽 코드 수정 응답 타입
+interface UpdateClubCodeResponse {
+    club_id: number;
+    club_code: string;
+}
+
+// 관리자: 클럽 코드 수정 (빈 문자열 전송 시 무작위 재발급)
+export const updateClubCode = async (clubCode: string): Promise<{ success: boolean; data?: UpdateClubCodeResponse; error?: string }> => {
+    try {
+        const response = await authFetch('/api/admin/club-code', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ club_code: clubCode }),
+        });
+
+        if (response.status === 200) {
+            const result: UpdateClubCodeResponse = await response.json();
+            showNotification(clubCode ? '클럽 코드가 변경되었습니다.' : '클럽 코드가 재발급되었습니다.');
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            try {
+                const errorData = await response.json();
+                return { success: false, error: errorData.detail || `클럽 코드 수정에 실패했습니다. (${response.status})` };
+            } catch {
+                return { success: false, error: `클럽 코드 수정에 실패했습니다. (${response.status})` };
+            }
+        }
+    } catch (error) {
+        console.error('Update club code error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 관리자 클럽 정보 응답 타입
+interface MyAdminClubResponse {
+    club_id: number;
+    club_name: string;
+    club_code: string;
+}
+
+// 관리자: 내 클럽 정보 조회
+export const getMyAdminClub = async (): Promise<{ success: boolean; data?: MyAdminClubResponse; error?: string }> => {
+    try {
+        const response = await authFetch('/api/admin/my-club', {
+            method: 'GET',
+        });
+
+        if (response.status === 200) {
+            const result: MyAdminClubResponse = await response.json();
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else {
+            return { success: false, error: '클럽 정보를 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get my admin club error:', error);
+        return { success: false, error: 'Network error occurred' };
     }
 };
