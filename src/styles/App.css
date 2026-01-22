@@ -443,6 +443,13 @@ h2 {
   margin: 0.25rem 0;
 }
 
+.item-description {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
 /* Back button */
 .back-btn {
   background: none;
@@ -750,6 +757,18 @@ h2 {
 
 .rent-btn:active {
   transform: translateY(0);
+}
+
+.rent-btn.disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.rent-btn.disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 /* 2. 모달 오버레이 (배경 블러 처리) */
