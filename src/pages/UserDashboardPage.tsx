@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, getClub, type ClubMember } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, getSchedules, returnItemSimple, type ClubMember, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -27,15 +27,10 @@ export function UserDashboardPage() {
     const [clubsLoading, setClubsLoading] = useState(true);
     const [clubNames, setClubNames] = useState<Record<number, string>>({});
 
-    // 대여 항목 상태 (TODO: 대여 목록 API 연동 필요)
-    const [borrowedItems] = useState<Array<{
-        id: number;
-        name: string;
-        clubName: string;
-        borrowedAt: string;
-        expectedReturn: string;
-    }>>([]);
-    const [borrowedLoading] = useState(false);
+    // 대여 항목 상태
+    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [schedulesLoading, setSchedulesLoading] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<'in_use' | 'returned' | ''>('');
 
     // 동아리 목록 가져오기
     useEffect(() => {
@@ -63,6 +58,33 @@ export function UserDashboardPage() {
 
         fetchMyClubs();
     }, []);
+
+    // 대여 이력 가져오기
+    useEffect(() => {
+        const fetchAllSchedules = async () => {
+            if (myClubs.length === 0 || activeTab !== 'borrowed') return;
+
+            setSchedulesLoading(true);
+            const allSchedules: Schedule[] = [];
+
+            // 모든 동아리 순회하며 스케줄(대여이력) 조회
+            await Promise.all(
+                myClubs.map(async (club) => {
+                    const result = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                    if (result.success && result.data) {
+                        allSchedules.push(...result.data.schedules);
+                    }
+                })
+            );
+
+            // 시작일 기준 내림차순 정렬 (최신순)
+            allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+            setSchedules(allSchedules);
+            setSchedulesLoading(false);
+        };
+
+        fetchAllSchedules();
+    }, [myClubs, statusFilter, activeTab]);
 
 
     const handleOpenAddClubModal = () => {
@@ -110,12 +132,36 @@ export function UserDashboardPage() {
         }
     };
 
-    // 상세페이지로 이동하는 핸들러
-    const handleGoToReturnDetail = (itemId: number) => {
-        // 아이템 ID를 URL 파라미터로 전달하고, 
-        // 필요하다면 현재 상태(tab 등)를 state로 넘길 수 있습니다.
-        navigate(`/return/detail/${itemId}`, {
-            state: { from: location.pathname, tab: activeTab }
+    // 반납 핸들러
+    const handleReturnItem = async (scheduleId: number) => {
+        if (window.confirm('반납하시겠습니까?')) {
+            const result = await returnItemSimple(scheduleId);
+            if (result.success) {
+                // 목록 갱신
+                const allSchedules: Schedule[] = [];
+                await Promise.all(
+                    myClubs.map(async (club) => {
+                        const res = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                        if (res.success && res.data) {
+                            allSchedules.push(...res.data.schedules);
+                        }
+                    })
+                );
+                allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+                setSchedules(allSchedules);
+            } else {
+                alert(result.error || '반납 실패');
+            }
+        }
+    };
+
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
@@ -129,7 +175,7 @@ export function UserDashboardPage() {
                         className={`admin-tab ${activeTab === 'borrowed' ? 'active' : ''}`}
                         onClick={() => setActiveTab('borrowed')}
                     >
-                        대여항목
+                        대여이력
                     </button>
                     <button
                         className={`admin-tab ${activeTab === 'clubs' ? 'active' : ''}`}
@@ -186,40 +232,68 @@ export function UserDashboardPage() {
                     </div>
                 )}
 
-                {/* 대여항목 탭 */}
+                {/* 대여이력 탭 */}
                 {activeTab === 'borrowed' && (
                     <div className="admin-content">
-                        {borrowedLoading ? (
+                        <div className="filter-container" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as '' | 'in_use' | 'returned')}
+                                style={{
+                                    padding: '0.5rem',
+                                    borderRadius: '0',
+                                    border: '1px solid var(--glass-border)',
+                                    background: 'white',
+                                    color: '#333',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                <option value="">전체 내역</option>
+                                <option value="in_use">사용중</option>
+                                <option value="returned">사용가능</option>
+                            </select>
+                        </div>
+
+                        {schedulesLoading ? (
                             <div className="loading">대여 목록을 불러오는 중...</div>
-                        ) : borrowedItems.length === 0 ? (
+                        ) : schedules.length === 0 ? (
                             <div className="empty-state">
-                                <p>현재 대여 중인 물품이 없습니다.</p>
+                                <p>대여 이력이 없습니다.</p>
                             </div>
                         ) : (
                             <div className="asset-list">
-                                {borrowedItems.map((item) => (
-                                    <div key={item.id} className="asset-card">
+                                {schedules.map((schedule) => (
+                                    <div key={schedule.id} className="asset-card">
                                         <div className="asset-image">
-                                            <div className="asset-image-placeholder">📱</div>
+                                            <div className="asset-image-placeholder">
+                                                {schedule.status === 'in_use' ? '📱' : '✅'}
+                                            </div>
                                         </div>
                                         <div className="asset-info">
-                                            <h3 className="asset-name">{item.name}</h3>
+                                            <h3 className="asset-name">물품 ID: {schedule.asset_id}</h3>
                                             <p className="asset-detail">
-                                                동아리: {item.clubName}
+                                                동아리: {clubNames[schedule.club_id] || '로딩중...'}
                                             </p>
                                             <p className="asset-detail">
-                                                대여일: {item.borrowedAt}
+                                                대여일: {formatDate(schedule.start_date)}
                                             </p>
                                             <p className="asset-detail">
-                                                반납예정일: {item.expectedReturn}
+                                                상태: {schedule.status === 'in_use' ? '사용중' : '사용가능'}
                                             </p>
+                                            {schedule.end_date && (
+                                                <p className="asset-detail">
+                                                    반납일: {formatDate(schedule.end_date)}
+                                                </p>
+                                            )}
                                         </div>
-                                        <button
-                                            className="primary-btn"
-                                            onClick={() => handleGoToReturnDetail(item.id)}
-                                        >
-                                            반납 신청하기
-                                        </button>
+                                        {schedule.status === 'in_use' && (
+                                            <button
+                                                className="primary-btn"
+                                                onClick={() => handleReturnItem(schedule.id)}
+                                            >
+                                                반납하기
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -266,4 +340,3 @@ export function UserDashboardPage() {
         </div>
     );
 }
-

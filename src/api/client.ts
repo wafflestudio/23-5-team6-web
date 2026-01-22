@@ -61,6 +61,24 @@ export interface ApplyListItem {
     student_id: string;
 }
 
+export interface Schedule {
+    id: number;
+    start_date: string; // ISO string
+    end_date: string; // ISO string
+    asset_id: number;
+    user_id: string;
+    club_id: number;
+    status: string; // 'inuse' | 'returned' | ...
+}
+
+export interface SchedulesResponse {
+    schedules: Schedule[];
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+}
+
 export interface ApplyListResponse {
     users: ApplyListItem[];
 }
@@ -512,6 +530,53 @@ export const getClubItems = async (clubId: number): Promise<{ success: boolean; 
     }
 };
 
+// 대여 이력 조회
+export const getSchedules = async (clubId: number, params?: { status?: string; page?: number; size?: number }): Promise<{ success: boolean; data?: SchedulesResponse; error?: string }> => {
+    try {
+        const queryParams = new URLSearchParams();
+        if (params?.status) queryParams.append('status', params.status);
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.size) queryParams.append('size', params.size.toString());
+
+        const url = `/api/schedules/${clubId}?${queryParams.toString()}`;
+
+        const response = await authFetch(url, {
+            method: 'GET',
+        });
+
+        if (response.status === 200) {
+            const result: SchedulesResponse = await response.json();
+            return { success: true, data: result };
+        } else {
+            return { success: false, error: '대여 이력을 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get schedules error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 물품 반납 (간편 반납 - 이미지 없음)
+export const returnItemSimple = async (rentalId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/rentals/${rentalId}/return`, {
+            method: 'POST',
+        });
+
+        if (response.status === 200) {
+            showNotification('반납이 완료되었습니다.');
+            return { success: true };
+        } else {
+            const errorData = await response.json();
+            return { success: false, error: errorData.detail || '반납에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Return item error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+
 // 관리자: 가입 신청 목록 조회
 export const getApplyList = async (): Promise<{ success: boolean; data?: ApplyListItem[]; error?: string }> => {
     try {
@@ -710,7 +775,7 @@ export const deleteClubMember = async (memberId: number): Promise<{ success: boo
 };
 
 // 사용자: 대여 신청 API 함수
-export const borrowItem = async (itemId: string, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
+export const borrowItem = async (itemId: number, expectedReturnDate?: string): Promise<{ success: boolean; error?: string }> => {
     try {
         const response = await authFetch('/api/rentals/borrow', {
             method: 'POST',

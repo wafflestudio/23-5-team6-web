@@ -19,6 +19,7 @@ export function MyPage() {
     const [emailSubject, setEmailSubject] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+
     const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // 관리자 클럽 정보 로드

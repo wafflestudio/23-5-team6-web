@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClubItems, borrowItem } from '@/api/client';
-import type { ClubItem } from '@/api/client';
+import { getAssets, borrowItem, type Asset } from '@/api/client';
 import '@/styles/App.css';
 
 const ITEMS_PER_PAGE = 10;
@@ -12,35 +11,35 @@ export function ItemListPage() {
     const navigate = useNavigate();
 
     // 상태 관리
-    const [items, setItems] = useState<ClubItem[]>([]);
+    const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedItem, setSelectedItem] = useState<ClubItem | null>(null);
+    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [returnDate, setReturnDate] = useState('');
 
     const clubIdNum = parseInt(clubId || '0', 10);
 
     useEffect(() => {
-            const fetchItems = async () => {
-                if (!clubIdNum) return;
-                setLoading(true);
-                const result = await getClubItems(clubIdNum);
-                if (result.success && result.data) {
-                    setItems(result.data.items);
-                } else {
-                    setError(result.error || '물품을 불러오는데 실패했습니다.');
-                }
-                setLoading(false);
-            };
+        const fetchAssets = async () => {
+            if (!clubIdNum) return;
+            setLoading(true);
+            const result = await getAssets(clubIdNum);
+            if (result.success && result.data) {
+                setAssets(result.data);
+            } else {
+                setError(result.error || '물품을 불러오는데 실패했습니다.');
+            }
+            setLoading(false);
+        };
 
-            fetchItems();
-        }, [clubIdNum, refreshKey])
+        fetchAssets();
+    }, [clubIdNum, refreshKey]);
 
     // 대여 버튼 클릭 핸들러
-    const handleRentClick = (item: ClubItem) => {
-        setSelectedItem(item);
+    const handleRentClick = (asset: Asset) => {
+        setSelectedAsset(asset);
         const defaultDate = new Date();
         defaultDate.setDate(defaultDate.getDate() + 7);
         setReturnDate(defaultDate.toISOString().split('T')[0]);
@@ -49,28 +48,12 @@ export function ItemListPage() {
 
     // 대여 확정 핸들러
     const handleConfirmBorrow = async () => {
-        if (!selectedItem) return;
-        const result = await borrowItem(selectedItem.item_id, returnDate);
+        if (!selectedAsset) return;
+        const result = await borrowItem(selectedAsset.id, returnDate);
         if (result.success) {
             setIsModalOpen(false);
             setRefreshKey(prev => prev + 1); // 목록 새로고침
         }
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            // 'available' 상태 처리 임의 추가, 벡엔드와 논의 필요 // 
-            case 'available': return <span className="status-badge available">대여 가능</span>;
-            case 'returned': return <span className="status-badge returned">대여 가능</span>;
-            case 'borrowed': return <span className="status-badge borrowed">대여 중</span>;
-            case 'overdue': return <span className="status-badge overdue">연체됨</span>;
-            default: return <span className="status-badge">{status}</span>;
-        }
-    };
-
-    const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleDateString('ko-KR');
     };
 
     const handlePageChange = (page: number) => {
@@ -79,9 +62,9 @@ export function ItemListPage() {
     };
 
     // 페이지네이션 계산
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(assets.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const currentItems = items.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const currentAssets = assets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     return (
         <div className="container">
@@ -89,38 +72,51 @@ export function ItemListPage() {
                 <button className="back-btn" onClick={() => navigate('/clubs')}>
                     ← 동아리 목록
                 </button>
-                <h2>물품 관리</h2>
-                <p className="page-subtitle">물품 목록 ({items.length}개)</p>
+                <h2>물품 대여</h2>
+                <p className="page-subtitle">대여 가능한 물품 ({assets.length}개)</p>
 
                 {loading ? (
                     <div className="loading">불러오는 중...</div>
                 ) : error ? (
                     <p className="error-message">{error}</p>
-                ) : items.length === 0 ? (
+                ) : assets.length === 0 ? (
                     <p className="empty-message">등록된 물품이 없습니다.</p>
                 ) : (
                     <>
                         <div className="item-grid">
-                            {currentItems.map(item => (
-                                <div key={item.item_id} className="item-card">
-                                    <div className="item-header">
-                                        <h3 className="item-name">{item.name}</h3>
-                                        {getStatusBadge(item.status)}
+                            {currentAssets.map(asset => (
+                                <div key={asset.id} className="item-card">
+                                    <div className="item-image">
+                                        <span style={{ fontSize: '2rem' }}>📦</span>
                                     </div>
-                                    {item.status === 'returned' || item.status === 'available' ? (
-                                        <button className="rent-btn" onClick={() => handleRentClick(item)}>
-                                            대여하기
-                                        </button>
-                                    ) : (
+                                    <div className="item-content">
+                                        <div className="item-header">
+                                            <h3 className="item-name">{asset.name}</h3>
+                                            <span className={`status-badge ${asset.available_quantity > 0 ? 'available' : 'borrowed'}`}>
+                                                {asset.available_quantity > 0 ? '대여 가능' : '대여 불가'}
+                                            </span>
+                                        </div>
                                         <div className="item-details">
-                                            {item.current_holder && (
-                                                <p className="item-holder">대여자: {item.current_holder}</p>
-                                            )}
-                                            <p className="item-return-date">
-                                                반납 예정일: {formatDate(item.expected_return_date)}
+                                            <p className="asset-detail">
+                                                수량: {asset.available_quantity}/{asset.total_quantity}
+                                            </p>
+                                            <p className="asset-detail">
+                                                위치: {asset.location || '미지정'}
+                                            </p>
+                                            <p className="item-description">
+                                                {asset.description || '설명이 없습니다.'}
                                             </p>
                                         </div>
-                                    )}
+                                        {asset.available_quantity > 0 ? (
+                                            <button className="rent-btn" onClick={() => handleRentClick(asset)} style={{ width: '100%' }}>
+                                                대여하기
+                                            </button>
+                                        ) : (
+                                            <button className="rent-btn disabled" disabled style={{ width: '100%' }}>
+                                                품절
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -138,10 +134,10 @@ export function ItemListPage() {
                 )}
             </main>
 
-            {isModalOpen && selectedItem && (
+            {isModalOpen && selectedAsset && (
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3>대여 신청: {selectedItem.name}</h3>
+                        <h3>대여 신청: {selectedAsset.name}</h3>
                         <div className="form-group" style={{ margin: '20px 0' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>반납 예정일</label>
                             <input 
