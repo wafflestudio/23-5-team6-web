@@ -102,17 +102,6 @@ body {
   padding-bottom: 1rem;
 }
 
-/* 6. LOGO */
-.logo {
-  font-weight: 700;
-  font-size: 1.1rem;
-  cursor: pointer;
-  background: linear-gradient(135deg, #a5b4fc, #818cf8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 /* 7. AUTH BUTTONS */
 .auth-buttons {
   display: flex;
