@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getApplyList, approveUser, getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, type ApplyListItem, type ClubMember, type Asset } from '@/api/client';
+import { uploadExcelAssets } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -72,6 +73,11 @@ export function AdminDashboardPage() {
         setAssetsLoading(false);
     };
 
+    // 엑셀 업로드 상태
+    const [showExcelModal, setShowExcelModal] = useState(false); // 엑셀 모달 표시 여부
+    const [selectedExcelFile, setSelectedExcelFile] = useState<File | null>(null); // 선택된 파일 저장
+    const [isUploading, setIsUploading] = useState(false);
+
     // 관리자 동아리 정보 및 멤버 목록 가져오기
     useEffect(() => {
         const fetchClubData = async () => {
@@ -109,6 +115,8 @@ export function AdminDashboardPage() {
             // 3. 자산 목록 조회
             fetchAssets(myClub.id);
         };
+
+
 
         fetchClubData();
     }, []);
@@ -203,6 +211,45 @@ export function AdminDashboardPage() {
             fetchAssets(myClubId);
         } else {
             setAddAssetError(result.error || '물품 추가에 실패했습니다.');
+        }
+    };
+
+    // 1. 모달 열기 핸들러
+    const handleOpenExcelModal = () => {
+        setSelectedExcelFile(null); // 이전 선택 초기화
+        setShowExcelModal(true);
+    };
+    
+    // 2. 파일 선택 시 유효성 검사 핸들러
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                alert('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.');
+                e.target.value = '';
+                return;
+            }
+            setSelectedExcelFile(file);
+        }
+    };
+
+    // 3. 실제 업로드 실행 핸들러 (모달 내 '업로드' 버튼 클릭 시)
+    const handleExcelUploadSubmit = async () => {
+        if (!selectedExcelFile || myClubId === null) {
+            alert('파일을 선택해주세요.');
+            return;
+        }
+
+        setIsUploading(true);
+        // client.ts에 구현된 uploadExcelAssets 호출
+        const result = await uploadExcelAssets(myClubId, selectedExcelFile); 
+        setIsUploading(false);
+
+        if (result.success) {
+            setShowExcelModal(false);
+            fetchAssets(myClubId); // 목록 새로고침
+        } else {
+            alert(result.error || '업로드 중 오류가 발생했습니다.');
         }
     };
 
@@ -314,16 +361,24 @@ export function AdminDashboardPage() {
                         </button>
                     )}
                     {activeTab === 'assets' && (
-                        <button
+                        <div className = "asset-tab-buttons">
+                            <button 
+                                className="member-approve-btn"
+                                onClick={handleOpenExcelModal}
+                            >
+                                엑셀 업로드
+                            </button>
+
+                            <button
                             className="member-approve-btn"
                             onClick={handleOpenAddAssetModal}
                         >
                             물품 추가
                         </button>
+                        </div>
                     )}
+                    {error && <p className="error-message">{error}</p>}
                 </div>
-
-                {error && <p className="error-message">{error}</p>}
 
                 {/* 멤버 승인 모달 */}
                 {showApprovalModal && (
@@ -455,6 +510,60 @@ export function AdminDashboardPage() {
                         </div>
                     </div>
                 )}
+                {/* 엑셀 업로드 모달 */}
+                {showExcelModal && (
+                    <div className="approval-modal-overlay" onClick={() => !isUploading && setShowExcelModal(false)}>
+                        <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="approval-modal-header">
+                                <h3>엑셀로 물품 일괄 추가</h3>
+                                <button 
+                                    className="close-btn" 
+                                    onClick={() => setShowExcelModal(false)}
+                                    disabled={isUploading}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="approval-modal-content">
+                                <div className="add-asset-form">
+                                    <div className="form-group">
+                                        <label>엑셀 파일 선택 (.xlsx, .xls)</label>
+                                        <input
+                                            type="file"
+                                            accept=".xlsx, .xls"
+                                            onChange={handleFileChange}
+                                            disabled={isUploading}
+                                            style={{ padding: '10px 0' }}
+                                        />
+                                    </div>
+                                    
+                                    {selectedExcelFile && (
+                                        <div style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>
+                                            <strong>선택됨:</strong> {selectedExcelFile.name}
+                                        </div>
+                                    )}
+
+                                    <div className="form-actions">
+                                        <button
+                                            className="cancel-btn"
+                                            onClick={() => setShowExcelModal(false)}
+                                            disabled={isUploading}
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            className="upload-btn"
+                                            onClick={handleExcelUploadSubmit}
+                                            disabled={isUploading || !selectedExcelFile}
+                                        >
+                                            {isUploading ? '업로드 중...' : '업로드 시작'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* 자산관리 탭 */}
                 {activeTab === 'assets' && (
@@ -489,8 +598,8 @@ export function AdminDashboardPage() {
                                                 </p>
                                             </div>
                                         </div>
-
-                                        {/* 확장된 세부사항 */}
+                                        
+                                        {/* 개별 물품 추가_확장된 세부사항 */}
                                         {expandedAssetId === asset.id && editingAsset && (
                                             <div className="asset-detail-form" onClick={(e) => e.stopPropagation()}>
                                                 <div className="form-group">
@@ -591,8 +700,8 @@ export function AdminDashboardPage() {
                     </div>
                 )}
             </main>
+            
         </div>
     );
 }
-
 
