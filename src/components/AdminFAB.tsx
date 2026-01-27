@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { getApplyList, approveUser } from '@/api/client';
+import { useState, useEffect, useRef } from 'react';
+import { getApplyList, approveUser, showNotification } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ApplyListItem } from '@/api/client';
 import '@/styles/App.css';
@@ -10,6 +10,27 @@ export function AdminFAB() {
     const [applications, setApplications] = useState<ApplyListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>('');
+    const [pendingCount, setPendingCount] = useState(0);
+    const hasCheckedRef = useRef(false);
+
+    // 관리자 로그인 시 초기 알림 확인
+    useEffect(() => {
+        if (!isAdmin || hasCheckedRef.current) return;
+
+        const checkPendingApplications = async () => {
+            const result = await getApplyList();
+            if (result.success && result.data) {
+                const count = result.data.length;
+                setPendingCount(count);
+                if (count > 0) {
+                    showNotification(`승인 대기 중인 신청이 ${count}건 있습니다.`);
+                }
+            }
+        };
+
+        hasCheckedRef.current = true;
+        checkPendingApplications();
+    }, [isAdmin]);
 
     // 관리자가 아니면 렌더링하지 않음
     if (!isAdmin) {
@@ -22,6 +43,7 @@ export function AdminFAB() {
         const result = await getApplyList();
         if (result.success && result.data) {
             setApplications(result.data);
+            setPendingCount(result.data.length);
         } else {
             setError(result.error || '목록을 불러올 수 없습니다.');
         }
@@ -41,7 +63,11 @@ export function AdminFAB() {
         const result = await approveUser(userId, approved);
         if (result.success) {
             // 목록에서 해당 사용자 제거
-            setApplications(prev => prev.filter(app => app.id !== userId));
+            setApplications(prev => {
+                const newList = prev.filter(app => app.id !== userId);
+                setPendingCount(newList.length);
+                return newList;
+            });
         }
     };
 
@@ -56,8 +82,8 @@ export function AdminFAB() {
                     <line x1="16" y1="17" x2="8" y2="17" />
                     <polyline points="10 9 9 9 8 9" />
                 </svg>
-                {applications.length > 0 && (
-                    <span className="fab-badge">{applications.length}</span>
+                {pendingCount > 0 && (
+                    <span className="fab-badge">{pendingCount}</span>
                 )}
             </button>
 

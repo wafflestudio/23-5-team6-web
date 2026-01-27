@@ -1074,3 +1074,39 @@ export const getMyAdminClub = async (): Promise<{ success: boolean; data?: MyAdm
         return { success: false, error: 'Network error occurred' };
     }
 };
+
+// 자산 통계 타입
+export interface AssetStatistics {
+    total_rental_count: number;
+    average_rental_duration: number;
+    recent_rental_count: number;
+    recent_avg_duration: number;
+    unique_borrower_count: number;
+    last_borrowed_at: string | null;
+    last_updated_at: string | null;
+}
+
+// 자산 통계 조회 (GET /api/statistics/{asset_id})
+export const getAssetStatistics = async (assetId: number): Promise<{ success: boolean; data?: AssetStatistics; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/statistics/${assetId}`, {
+            method: 'GET',
+        });
+
+        if (response.status === 200) {
+            const result: AssetStatistics = await response.json();
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            return { success: false, error: '통계를 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get asset statistics error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
