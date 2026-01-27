@@ -102,6 +102,28 @@ body {
   padding-bottom: 1rem;
 }
 
+.logo-icon {
+  height: 35px;
+  display: block;
+  background-color: var(--primary-color);
+  transition: transform 0.15s ease-in-out;
+
+  /* 이미지를 마스크로 설정 */
+  -webkit-mask-image: url('@/assets/logo-with-letter.svg');
+  mask-image: url('@/assets/logo-with-letter.svg');
+
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+  .logo-icon:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.02);
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+  }
+
 /* 7. AUTH BUTTONS */
 .auth-buttons {
   display: flex;
