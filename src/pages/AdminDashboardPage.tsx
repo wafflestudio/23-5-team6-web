@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getApplyList, approveUser, getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, type ApplyListItem, type ClubMember, type Asset } from '@/api/client';
-import { uploadExcelAssets } from '@/api/client';
+import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, type ClubMember, type Asset, type AssetStatistics } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -22,10 +21,7 @@ const getPermissionTag = (permission: number) => {
 
 export function AdminDashboardPage() {
     const [activeTab, setActiveTab] = useState<TabType>('assets');
-    const [showApprovalModal, setShowApprovalModal] = useState(false);
     const [showAddAssetModal, setShowAddAssetModal] = useState(false);
-    const [applyList, setApplyList] = useState<ApplyListItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // 물품 추가 폼 상태
@@ -51,6 +47,12 @@ export function AdminDashboardPage() {
         location: string;
     } | null>(null);
     const [isUpdatingAsset, setIsUpdatingAsset] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    // 자산 통계 상태
+    const [assetStats, setAssetStats] = useState<AssetStatistics | null>(null);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [statsError, setStatsError] = useState<string | null>(null);
 
     // 동아리 멤버 상태
     const [clubMembers, setClubMembers] = useState<ClubMember[]>([]);
@@ -121,35 +123,7 @@ export function AdminDashboardPage() {
         fetchClubData();
     }, []);
 
-    const handleOpenApprovalModal = async () => {
-        setIsLoading(true);
-        setError(null);
-        const result = await getApplyList();
-        setIsLoading(false);
 
-        if (result.success && result.data) {
-            setApplyList(result.data);
-            setShowApprovalModal(true);
-        } else {
-            setError(result.error || '신청 목록을 불러오는데 실패했습니다.');
-        }
-    };
-
-    const handleApprove = async (userId: string, approved: boolean) => {
-        const result = await approveUser(userId, approved);
-        if (result.success) {
-            // 승인/거절 후 목록에서 제거
-            setApplyList(prev => prev.filter(user => user.id !== userId));
-
-            // 멤버 목록 새로고침
-            if (myClubId) {
-                const membersResult = await getClubMembers({ club_id: myClubId });
-                if (membersResult.success && membersResult.data) {
-                    setClubMembers(membersResult.data.items);
-                }
-            }
-        }
-    };
 
     const handleDeleteMember = async (memberId: number) => {
         if (!confirm('정말 이 멤버를 삭제하시겠습니까?')) {
@@ -219,7 +193,7 @@ export function AdminDashboardPage() {
         setSelectedExcelFile(null); // 이전 선택 초기화
         setShowExcelModal(true);
     };
-    
+
     // 2. 파일 선택 시 유효성 검사 핸들러
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -242,7 +216,7 @@ export function AdminDashboardPage() {
 
         setIsUploading(true);
         // client.ts에 구현된 uploadExcelAssets 호출
-        const result = await uploadExcelAssets(myClubId, selectedExcelFile); 
+        const result = await uploadExcelAssets(myClubId, selectedExcelFile);
         setIsUploading(false);
 
         if (result.success) {
@@ -254,11 +228,13 @@ export function AdminDashboardPage() {
     };
 
     // 자산 카드 클릭 핸들러
-    const handleAssetClick = (asset: Asset) => {
+    const handleAssetClick = async (asset: Asset) => {
         if (expandedAssetId === asset.id) {
             // 이미 확장된 카드 클릭 시 닫기
             setExpandedAssetId(null);
             setEditingAsset(null);
+            setAssetStats(null);
+            setStatsError(null);
         } else {
             // 새 카드 확장
             setExpandedAssetId(asset.id);
@@ -268,6 +244,18 @@ export function AdminDashboardPage() {
                 quantity: asset.total_quantity,
                 location: asset.location,
             });
+
+            // 통계 불러오기
+            setStatsLoading(true);
+            setStatsError(null);
+            setAssetStats(null);
+            const statsResult = await getAssetStatistics(asset.id);
+            setStatsLoading(false);
+            if (statsResult.success && statsResult.data) {
+                setAssetStats(statsResult.data);
+            } else {
+                setStatsError(statsResult.error || '통계를 불러올 수 없습니다.');
+            }
         }
     };
 
@@ -351,18 +339,9 @@ export function AdminDashboardPage() {
                     >
                         멤버관리
                     </button>
-                    {activeTab === 'members' && (
-                        <button
-                            className="member-approve-btn"
-                            onClick={handleOpenApprovalModal}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? '로딩...' : '멤버 승인'}
-                        </button>
-                    )}
                     {activeTab === 'assets' && (
-                        <div className = "asset-tab-buttons">
-                            <button 
+                        <div className="asset-tab-buttons">
+                            <button
                                 className="member-approve-btn"
                                 onClick={handleOpenExcelModal}
                             >
@@ -370,63 +349,15 @@ export function AdminDashboardPage() {
                             </button>
 
                             <button
-                            className="member-approve-btn"
-                            onClick={handleOpenAddAssetModal}
-                        >
-                            물품 추가
-                        </button>
+                                className="member-approve-btn"
+                                onClick={handleOpenAddAssetModal}
+                            >
+                                물품 추가
+                            </button>
                         </div>
                     )}
                     {error && <p className="error-message">{error}</p>}
                 </div>
-
-                {/* 멤버 승인 모달 */}
-                {showApprovalModal && (
-                    <div className="approval-modal-overlay" onClick={() => setShowApprovalModal(false)}>
-                        <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
-                            <div className="approval-modal-header">
-                                <h3>멤버 승인 요청</h3>
-                                <button
-                                    className="close-btn"
-                                    onClick={() => setShowApprovalModal(false)}
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                            <div className="approval-modal-content">
-                                {applyList.length === 0 ? (
-                                    <p className="empty-message">승인 대기 중인 멤버가 없습니다.</p>
-                                ) : (
-                                    <div className="approval-list">
-                                        {applyList.map((user) => (
-                                            <div key={user.id} className="approval-item">
-                                                <div className="approval-user-info">
-                                                    <p className="approval-user-name">{user.name}</p>
-                                                    <p className="approval-user-email">{user.email}</p>
-                                                    <p className="approval-user-student">{user.student_id}</p>
-                                                </div>
-                                                <div className="approval-actions">
-                                                    <button
-                                                        className="approve-btn"
-                                                        onClick={() => handleApprove(user.id, true)}
-                                                    >
-                                                        승인
-                                                    </button>
-                                                    <button
-                                                        className="reject-btn"
-                                                        onClick={() => handleApprove(user.id, false)}
-                                                    >
-                                                        거절
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* 물품 추가 모달 */}
                 {showAddAssetModal && (
@@ -509,17 +440,178 @@ export function AdminDashboardPage() {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+                }
                 {/* 엑셀 업로드 모달 */}
-                {showExcelModal && (
-                    <div className="approval-modal-overlay" onClick={() => !isUploading && setShowExcelModal(false)}>
+                {
+                    showExcelModal && (
+                        <div className="approval-modal-overlay" onClick={() => !isUploading && setShowExcelModal(false)}>
+                            <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="approval-modal-header">
+                                    <h3>엑셀로 물품 일괄 추가</h3>
+                                    <button
+                                        className="close-btn"
+                                        onClick={() => setShowExcelModal(false)}
+                                        disabled={isUploading}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="approval-modal-content">
+                                    <div className="add-asset-form">
+                                        <div className="form-group">
+                                            <label>엑셀 파일 선택 (.xlsx, .xls)</label>
+                                            <input
+                                                type="file"
+                                                accept=".xlsx, .xls"
+                                                onChange={handleFileChange}
+                                                disabled={isUploading}
+                                                style={{ padding: '10px 0' }}
+                                            />
+                                        </div>
+
+                                        {selectedExcelFile && (
+                                            <div style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>
+                                                <strong>선택됨:</strong> {selectedExcelFile.name}
+                                            </div>
+                                        )}
+
+                                        <div className="form-actions">
+                                            <button
+                                                className="cancel-btn"
+                                                onClick={() => setShowExcelModal(false)}
+                                                disabled={isUploading}
+                                            >
+                                                취소
+                                            </button>
+                                            <button
+                                                className="upload-btn"
+                                                onClick={handleExcelUploadSubmit}
+                                                disabled={isUploading || !selectedExcelFile}
+                                            >
+                                                {isUploading ? '업로드 중...' : '업로드 시작'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {/* 자산관리 탭 */}
+                {
+                    activeTab === 'assets' && (
+                        <div className="admin-content">
+                            {assetsLoading ? (
+                                <div className="loading">자산 목록을 불러오는 중...</div>
+                            ) : assetsError ? (
+                                <div className="error-message">{assetsError}</div>
+                            ) : assets.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>등록된 자산이 없습니다.</p>
+                                </div>
+                            ) : (
+                                <div className="asset-list">
+                                    {assets.map((asset) => (
+                                        <div
+                                            key={asset.id}
+                                            className={`asset-card ${expandedAssetId === asset.id ? 'expanded' : ''}`}
+                                            onClick={() => handleAssetClick(asset)}
+                                        >
+                                            <div className="asset-card-header">
+                                                <div className="asset-image">
+                                                    <div className="asset-image-placeholder">📦</div>
+                                                </div>
+                                                <div className="asset-info">
+                                                    <h3 className="asset-name">{asset.name}</h3>
+                                                    <p className="asset-detail">
+                                                        수량: {asset.available_quantity}/{asset.total_quantity}
+                                                    </p>
+                                                    <p className="asset-detail">
+                                                        {asset.description || '설명 없음'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* 개별 물품 확장된 세부사항 */}
+                                            {expandedAssetId === asset.id && editingAsset && (
+                                                <div className="asset-detail-form" onClick={(e) => e.stopPropagation()}>
+                                                    {/* 통계 섹션 */}
+                                                    <div className="asset-stats-section">
+                                                        <h4 className="stats-title">📊 대여 통계</h4>
+                                                        {statsLoading ? (
+                                                            <div className="stats-loading">통계 불러오는 중...</div>
+                                                        ) : statsError ? (
+                                                            <div className="stats-error">{statsError}</div>
+                                                        ) : assetStats ? (
+                                                            <div className="stats-grid">
+                                                                <div className="stat-card">
+                                                                    <span className="stat-value">{assetStats.total_rental_count}</span>
+                                                                    <span className="stat-label">총 대여 횟수</span>
+                                                                </div>
+                                                                <div className="stat-card">
+                                                                    <span className="stat-value">{assetStats.unique_borrower_count}</span>
+                                                                    <span className="stat-label">이용자 수</span>
+                                                                </div>
+                                                                <div className="stat-card">
+                                                                    <span className="stat-value">
+                                                                        {assetStats.average_rental_duration > 0
+                                                                            ? `${Math.round(assetStats.average_rental_duration)}일`
+                                                                            : '-'}
+                                                                    </span>
+                                                                    <span className="stat-label">평균 대여 기간</span>
+                                                                </div>
+                                                                <div className="stat-card">
+                                                                    <span className="stat-value">{assetStats.recent_rental_count}</span>
+                                                                    <span className="stat-label">최근 대여</span>
+                                                                </div>
+                                                                {assetStats.last_borrowed_at && (
+                                                                    <div className="stat-card full-width">
+                                                                        <span className="stat-value">
+                                                                            {new Date(assetStats.last_borrowed_at).toLocaleDateString('ko-KR')}
+                                                                        </span>
+                                                                        <span className="stat-label">마지막 대여일</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+
+                                                    {/* 수정 버튼 */}
+                                                    <button
+                                                        className="edit-asset-btn"
+                                                        onClick={() => {
+                                                            setEditingAsset({
+                                                                name: asset.name,
+                                                                description: asset.description,
+                                                                quantity: asset.total_quantity,
+                                                                location: asset.location,
+                                                            });
+                                                            setShowEditModal(true);
+                                                        }}
+                                                    >
+                                                        ✏️ 물품 수정하기
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* 물품 수정 모달 */}
+                {showEditModal && editingAsset && (
+                    <div className="approval-modal-overlay" onClick={() => setShowEditModal(false)}>
                         <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="approval-modal-header">
-                                <h3>엑셀로 물품 일괄 추가</h3>
-                                <button 
-                                    className="close-btn" 
-                                    onClick={() => setShowExcelModal(false)}
-                                    disabled={isUploading}
+                                <h3>물품 수정</h3>
+                                <button
+                                    className="close-btn"
+                                    onClick={() => setShowEditModal(false)}
                                 >
                                     ✕
                                 </button>
@@ -527,36 +619,61 @@ export function AdminDashboardPage() {
                             <div className="approval-modal-content">
                                 <div className="add-asset-form">
                                     <div className="form-group">
-                                        <label>엑셀 파일 선택 (.xlsx, .xls)</label>
+                                        <label htmlFor="edit-name">물품 이름 *</label>
                                         <input
-                                            type="file"
-                                            accept=".xlsx, .xls"
-                                            onChange={handleFileChange}
-                                            disabled={isUploading}
-                                            style={{ padding: '10px 0' }}
+                                            id="edit-name"
+                                            type="text"
+                                            value={editingAsset.name}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
                                         />
                                     </div>
-                                    
-                                    {selectedExcelFile && (
-                                        <div style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>
-                                            <strong>선택됨:</strong> {selectedExcelFile.name}
-                                        </div>
-                                    )}
-
+                                    <div className="form-group">
+                                        <label htmlFor="edit-description">설명</label>
+                                        <textarea
+                                            id="edit-description"
+                                            value={editingAsset.description}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, description: e.target.value })}
+                                            rows={3}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-quantity">수량 *</label>
+                                        <input
+                                            id="edit-quantity"
+                                            type="number"
+                                            min={1}
+                                            value={editingAsset.quantity}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-location">위치</label>
+                                        <input
+                                            id="edit-location"
+                                            type="text"
+                                            value={editingAsset.location}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
+                                            placeholder="예: 동아리방 선반"
+                                        />
+                                    </div>
+                                    {error && <p className="error-message">{error}</p>}
                                     <div className="form-actions">
                                         <button
-                                            className="cancel-btn"
-                                            onClick={() => setShowExcelModal(false)}
-                                            disabled={isUploading}
+                                            className="delete-asset-btn"
+                                            onClick={() => expandedAssetId && handleDeleteAsset(expandedAssetId)}
+                                            disabled={isUpdatingAsset}
                                         >
-                                            취소
+                                            삭제
                                         </button>
                                         <button
-                                            className="upload-btn"
-                                            onClick={handleExcelUploadSubmit}
-                                            disabled={isUploading || !selectedExcelFile}
+                                            className="approve-btn"
+                                            onClick={async () => {
+                                                await handleUpdateAsset();
+                                                setShowEditModal(false);
+                                            }}
+                                            disabled={isUpdatingAsset}
                                         >
-                                            {isUploading ? '업로드 중...' : '업로드 시작'}
+                                            {isUpdatingAsset ? '저장 중...' : '저장'}
                                         </button>
                                     </div>
                                 </div>
@@ -565,143 +682,47 @@ export function AdminDashboardPage() {
                     </div>
                 )}
 
-                {/* 자산관리 탭 */}
-                {activeTab === 'assets' && (
-                    <div className="admin-content">
-                        {assetsLoading ? (
-                            <div className="loading">자산 목록을 불러오는 중...</div>
-                        ) : assetsError ? (
-                            <div className="error-message">{assetsError}</div>
-                        ) : assets.length === 0 ? (
-                            <div className="empty-state">
-                                <p>등록된 자산이 없습니다.</p>
-                            </div>
-                        ) : (
-                            <div className="asset-list">
-                                {assets.map((asset) => (
-                                    <div
-                                        key={asset.id}
-                                        className={`asset-card ${expandedAssetId === asset.id ? 'expanded' : ''}`}
-                                        onClick={() => handleAssetClick(asset)}
-                                    >
-                                        <div className="asset-card-header">
-                                            <div className="asset-image">
-                                                <div className="asset-image-placeholder">📦</div>
+                {/* 멤버관리 탭 */}
+                {
+                    activeTab === 'members' && (
+                        <div className="admin-content">
+                            {membersLoading ? (
+                                <div className="loading">멤버 목록을 불러오는 중...</div>
+                            ) : membersError ? (
+                                <div className="error-message">{membersError}</div>
+                            ) : clubMembers.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>등록된 멤버가 없습니다.</p>
+                                </div>
+                            ) : (
+                                <div className="member-list">
+                                    {clubMembers.map((member) => (
+                                        <div key={member.id} className="member-card">
+                                            <div className="member-info">
+                                                <h3 className="member-name">사용자 {member.name}</h3>
+                                                <p className="member-email">멤버 ID: {member.id}</p>
                                             </div>
-                                            <div className="asset-info">
-                                                <h3 className="asset-name">{asset.name}</h3>
-                                                <p className="asset-detail">
-                                                    수량: {asset.available_quantity}/{asset.total_quantity}
-                                                </p>
-                                                <p className="asset-detail">
-                                                    {asset.description || '설명 없음'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* 개별 물품 추가_확장된 세부사항 */}
-                                        {expandedAssetId === asset.id && editingAsset && (
-                                            <div className="asset-detail-form" onClick={(e) => e.stopPropagation()}>
-                                                <div className="form-group">
-                                                    <label>물품 이름</label>
-                                                    <input
-                                                        type="text"
-                                                        value={editingAsset.name}
-                                                        onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>설명</label>
-                                                    <textarea
-                                                        value={editingAsset.description}
-                                                        onChange={(e) => setEditingAsset({ ...editingAsset, description: e.target.value })}
-                                                        rows={2}
-                                                    />
-                                                </div>
-                                                <div className="form-row">
-                                                    <div className="form-group">
-                                                        <label>수량</label>
-                                                        <input
-                                                            type="number"
-                                                            min={1}
-                                                            value={editingAsset.quantity}
-                                                            onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>위치</label>
-                                                        <input
-                                                            type="text"
-                                                            value={editingAsset.location}
-                                                            onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
-                                                            placeholder="예: 동아리방 선반"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="asset-detail-actions">
+                                            <div className="member-actions">
+                                                {getPermissionTag(member.permission)}
+                                                {member.permission !== 1 && (
                                                     <button
-                                                        className="delete-asset-btn"
-                                                        onClick={() => handleDeleteAsset(asset.id)}
-                                                        disabled={isUpdatingAsset}
+                                                        className="delete-member-btn"
+                                                        onClick={() => handleDeleteMember(member.id)}
                                                     >
                                                         삭제
                                                     </button>
-                                                    <button
-                                                        className="save-asset-btn"
-                                                        onClick={handleUpdateAsset}
-                                                        disabled={isUpdatingAsset}
-                                                    >
-                                                        {isUpdatingAsset ? '저장 중...' : '저장'}
-                                                    </button>
-                                                </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+            </main >
 
-                {/* 멤버관리 탭 */}
-                {activeTab === 'members' && (
-                    <div className="admin-content">
-                        {membersLoading ? (
-                            <div className="loading">멤버 목록을 불러오는 중...</div>
-                        ) : membersError ? (
-                            <div className="error-message">{membersError}</div>
-                        ) : clubMembers.length === 0 ? (
-                            <div className="empty-state">
-                                <p>등록된 멤버가 없습니다.</p>
-                            </div>
-                        ) : (
-                            <div className="member-list">
-                                {clubMembers.map((member) => (
-                                    <div key={member.id} className="member-card">
-                                        <div className="member-info">
-                                            <h3 className="member-name">사용자 {member.name}</h3>
-                                            <p className="member-email">멤버 ID: {member.id}</p>
-                                        </div>
-                                        <div className="member-actions">
-                                            {getPermissionTag(member.permission)}
-                                            {member.permission !== 1 && (
-                                                <button
-                                                    className="delete-member-btn"
-                                                    onClick={() => handleDeleteMember(member.id)}
-                                                >
-                                                    삭제
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </main>
-            
-        </div>
+        </div >
     );
 }
 
