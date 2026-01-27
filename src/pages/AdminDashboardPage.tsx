@@ -47,6 +47,7 @@ export function AdminDashboardPage() {
         location: string;
     } | null>(null);
     const [isUpdatingAsset, setIsUpdatingAsset] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // 자산 통계 상태
     const [assetStats, setAssetStats] = useState<AssetStatistics | null>(null);
@@ -577,58 +578,21 @@ export function AdminDashboardPage() {
                                                         ) : null}
                                                     </div>
 
-                                                    <div className="form-group">
-                                                        <label>물품 이름</label>
-                                                        <input
-                                                            type="text"
-                                                            value={editingAsset.name}
-                                                            onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>설명</label>
-                                                        <textarea
-                                                            value={editingAsset.description}
-                                                            onChange={(e) => setEditingAsset({ ...editingAsset, description: e.target.value })}
-                                                            rows={2}
-                                                        />
-                                                    </div>
-                                                    <div className="form-row">
-                                                        <div className="form-group">
-                                                            <label>수량</label>
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                value={editingAsset.quantity}
-                                                                onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                                                            />
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label>위치</label>
-                                                            <input
-                                                                type="text"
-                                                                value={editingAsset.location}
-                                                                onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
-                                                                placeholder="예: 동아리방 선반"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="asset-detail-actions">
-                                                        <button
-                                                            className="delete-asset-btn"
-                                                            onClick={() => handleDeleteAsset(asset.id)}
-                                                            disabled={isUpdatingAsset}
-                                                        >
-                                                            삭제
-                                                        </button>
-                                                        <button
-                                                            className="save-asset-btn"
-                                                            onClick={handleUpdateAsset}
-                                                            disabled={isUpdatingAsset}
-                                                        >
-                                                            {isUpdatingAsset ? '저장 중...' : '저장'}
-                                                        </button>
-                                                    </div>
+                                                    {/* 수정 버튼 */}
+                                                    <button
+                                                        className="edit-asset-btn"
+                                                        onClick={() => {
+                                                            setEditingAsset({
+                                                                name: asset.name,
+                                                                description: asset.description,
+                                                                quantity: asset.total_quantity,
+                                                                location: asset.location,
+                                                            });
+                                                            setShowEditModal(true);
+                                                        }}
+                                                    >
+                                                        ✏️ 물품 수정하기
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
@@ -638,6 +602,85 @@ export function AdminDashboardPage() {
                         </div>
                     )
                 }
+
+                {/* 물품 수정 모달 */}
+                {showEditModal && editingAsset && (
+                    <div className="approval-modal-overlay" onClick={() => setShowEditModal(false)}>
+                        <div className="approval-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="approval-modal-header">
+                                <h3>물품 수정</h3>
+                                <button
+                                    className="close-btn"
+                                    onClick={() => setShowEditModal(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="approval-modal-content">
+                                <div className="add-asset-form">
+                                    <div className="form-group">
+                                        <label htmlFor="edit-name">물품 이름 *</label>
+                                        <input
+                                            id="edit-name"
+                                            type="text"
+                                            value={editingAsset.name}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-description">설명</label>
+                                        <textarea
+                                            id="edit-description"
+                                            value={editingAsset.description}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, description: e.target.value })}
+                                            rows={3}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-quantity">수량 *</label>
+                                        <input
+                                            id="edit-quantity"
+                                            type="number"
+                                            min={1}
+                                            value={editingAsset.quantity}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-location">위치</label>
+                                        <input
+                                            id="edit-location"
+                                            type="text"
+                                            value={editingAsset.location}
+                                            onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
+                                            placeholder="예: 동아리방 선반"
+                                        />
+                                    </div>
+                                    {error && <p className="error-message">{error}</p>}
+                                    <div className="form-actions">
+                                        <button
+                                            className="delete-asset-btn"
+                                            onClick={() => expandedAssetId && handleDeleteAsset(expandedAssetId)}
+                                            disabled={isUpdatingAsset}
+                                        >
+                                            삭제
+                                        </button>
+                                        <button
+                                            className="approve-btn"
+                                            onClick={async () => {
+                                                await handleUpdateAsset();
+                                                setShowEditModal(false);
+                                            }}
+                                            disabled={isUpdatingAsset}
+                                        >
+                                            {isUpdatingAsset ? '저장 중...' : '저장'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* 멤버관리 탭 */}
                 {
