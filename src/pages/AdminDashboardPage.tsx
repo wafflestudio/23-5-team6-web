@@ -236,9 +236,9 @@ export function AdminDashboardPage() {
     // 엑셀 템플릿 다운로드 함수
     const handleDownloadTemplate = () => {
         // CSV 형식의 템플릿 생성 (엑셀에서 열 수 있음)
-        const headers = ['name', 'description', 'quantity', 'location'];
+        const headers = ['name', 'description', 'quantity', 'location', 'total_quantity', 'available_quantity', 'created_at'];
         const exampleData = [
-            '노트북', '맥북 프로 14인치', '3', '동아리방 선반'
+            '노트북', '맥북 프로 14인치', '3', '동아리방 선반', '3', '3', '2024-01-01 14:30'
         ];
 
         const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
@@ -285,10 +285,16 @@ export function AdminDashboardPage() {
 
         setIsUploading(true);
         // client.ts에 구현된 uploadExcelAssets 호출
-        const result = await uploadExcelAssets(myClubId, selectedExcelFile);
+        const result = await uploadExcelAssets(selectedExcelFile);
         setIsUploading(false);
 
-        if (result.success) {
+        if (result.success && result.data) {
+            const { imported, failed } = result.data;
+            if (failed.length > 0) {
+                alert(`업로드 완료: ${imported}개 성공, ${failed.length}개 실패하였습니다.`);
+            } else {
+                alert(`${imported}개의 물품이 모두 등록되었습니다.`);
+            }
             setShowExcelModal(false);
             fetchAssets(myClubId); // 목록 새로고침
         } else {
