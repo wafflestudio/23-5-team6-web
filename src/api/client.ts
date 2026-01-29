@@ -471,6 +471,8 @@ export interface Club {
     name: string;
     description: string;
     club_code: string;
+    location_lat?: number;
+    location_lng?: number;
 }
 
 // 관리자의 동아리 목록 조회 (GET /api/clubs)
@@ -556,11 +558,26 @@ export const getSchedules = async (clubId: number, params?: { status?: string; p
     }
 };
 
-// 물품 반납 (간편 반납 - 이미지 없음)
-export const returnItemSimple = async (rentalId: number): Promise<{ success: boolean; error?: string }> => {
+// 물품 반납 (GPS 좌표 선택적 지원)
+export const returnItemSimple = async (
+    rentalId: number,
+    location?: { lat: number; lng: number }
+): Promise<{ success: boolean; error?: string }> => {
     try {
+        const body: { location_lat?: number; location_lng?: number } = {};
+
+        if (location) {
+            // API는 degrees * 1,000,000 형식 사용
+            body.location_lat = Math.round(location.lat * 1000000);
+            body.location_lng = Math.round(location.lng * 1000000);
+        }
+
         const response = await authFetch(`/api/rentals/${rentalId}/return`, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
         });
 
         if (response.status === 200) {
@@ -886,6 +903,7 @@ export const getAssets = async (clubId: number): Promise<{ success: boolean; dat
 
 // 관리자: 자산 수정 타입
 interface UpdateAssetRequest {
+    club_id: number;
     name?: string;
     description?: string;
     category_id?: number;
@@ -1143,6 +1161,142 @@ export const getAssetStatistics = async (assetId: number): Promise<{ success: bo
         }
     } catch (error) {
         console.error('Get asset statistics error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// ===== 자산 사진 관리 API =====
+
+// 자산 사진 타입
+export interface AssetPicture {
+    id: number;
+    asset_id: number;
+    is_main: boolean;
+    url?: string;
+}
+
+// 사진 URL 생성 (API 경로 반환)
+export const getPictureUrl = (pictureId: number): string => {
+    return `/api/pictures/${pictureId}`;
+};
+
+// 자산 사진 목록 조회 (GET /api/assets/{asset_id}/pictures)
+export const getAssetPictures = async (assetId: number): Promise<{ success: boolean; data?: AssetPicture[]; error?: string }> => {
+    try {
+        const response = await fetch(`/api/assets/${assetId}/pictures`, {
+            method: 'GET',
+        });
+
+        if (response.status === 200) {
+            const result: AssetPicture[] = await response.json();
+            return { success: true, data: result };
+        } else if (response.status === 404) {
+            return { success: true, data: [] }; // 사진이 없는 경우
+        } else {
+            return { success: false, error: '사진 목록을 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get asset pictures error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 자산 사진 업로드 (POST /api/admin/assets/{asset_id}/pictures)
+export const addAssetPicture = async (
+    assetId: number,
+    file: File,
+    isMain: boolean = false
+): Promise<{ success: boolean; data?: AssetPicture; error?: string }> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const url = `/api/admin/assets/${assetId}/pictures?is_main=${isMain}`;
+
+        const response = await authFetch(url, {
+            method: 'POST',
+            body: formData,
+            // Note: Content-Type is automatically set for FormData
+        });
+
+        if (response.status === 201) {
+            const result = await response.json();
+            showNotification('사진이 업로드되었습니다.');
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            try {
+                const errorData = await response.json();
+                return { success: false, error: errorData.detail || '사진 업로드에 실패했습니다.' };
+            } catch {
+                return { success: false, error: '사진 업로드에 실패했습니다.' };
+            }
+        }
+    } catch (error) {
+        console.error('Add asset picture error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 대표 사진 설정 (PATCH /api/admin/assets/{asset_id}/pictures/{picture_id}/main)
+export const setMainPicture = async (
+    assetId: number,
+    pictureId: number
+): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/admin/assets/${assetId}/pictures/${pictureId}/main`, {
+            method: 'PATCH',
+        });
+
+        if (response.status === 200) {
+            showNotification('대표 사진이 설정되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 404) {
+            return { success: false, error: '사진을 찾을 수 없습니다.' };
+        } else {
+            return { success: false, error: '대표 사진 설정에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Set main picture error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 자산 사진 삭제 (DELETE /api/admin/assets/{asset_id}/pictures/{picture_id})
+export const deleteAssetPicture = async (
+    assetId: number,
+    pictureId: number
+): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/admin/assets/${assetId}/pictures/${pictureId}`, {
+            method: 'DELETE',
+        });
+
+        if (response.status === 204 || response.status === 200) {
+            showNotification('사진이 삭제되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '관리자 권한이 없습니다.' };
+        } else if (response.status === 404) {
+            return { success: false, error: '사진을 찾을 수 없습니다.' };
+        } else {
+            return { success: false, error: '사진 삭제에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Delete asset picture error:', error);
         return { success: false, error: 'Network error occurred' };
     }
 };

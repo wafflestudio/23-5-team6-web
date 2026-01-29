@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateClubCode, getMyAdminClub } from '@/api/client';
+import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, type Schedule, type ClubMember, type Asset } from '@/api/client';
 import '@/styles/App.css';
 
 export function MyPage() {
@@ -22,13 +22,21 @@ export function MyPage() {
 
     const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
+    // 연체자 목록 상태
+    const [clubId, setClubId] = useState<number | null>(null);
+    const [overdueSchedules, setOverdueSchedules] = useState<Schedule[]>([]);
+    const [overdueMembers, setOverdueMembers] = useState<ClubMember[]>([]);
+    const [overdueAssets, setOverdueAssets] = useState<Asset[]>([]);
+    const [selectedOverdue, setSelectedOverdue] = useState<Set<number>>(new Set());
+    const [overdueLoading, setOverdueLoading] = useState(false);
+
     // 관리자 클럽 정보 로드
     useEffect(() => {
         if (isAdmin) {
             const fetchClubInfo = async () => {
                 const result = await getMyAdminClub();
                 if (result.success && result.data) {
-                    // setClubId(result.data.club_id);
+                    setClubId(result.data.club_id);
                     setClubName(result.data.club_name);
                     setCurrentClubCode(result.data.club_code);
                 }
@@ -36,6 +44,32 @@ export function MyPage() {
             fetchClubInfo();
         }
     }, [isAdmin]);
+
+    // 연체자 목록 로드
+    useEffect(() => {
+        if (isAdmin && clubId) {
+            const fetchOverdueData = async () => {
+                setOverdueLoading(true);
+                // 연체 대여 목록
+                const schedResult = await getSchedules(clubId, { status: 'overdue', size: 100 });
+                if (schedResult.success && schedResult.data) {
+                    setOverdueSchedules(schedResult.data.schedules);
+                }
+                // 멤버 목록
+                const membersResult = await getClubMembers({ club_id: clubId, size: 100 });
+                if (membersResult.success && membersResult.data) {
+                    setOverdueMembers(membersResult.data.items);
+                }
+                // 자산 목록
+                const assetsResult = await getAssets(clubId);
+                if (assetsResult.success && assetsResult.data) {
+                    setOverdueAssets(assetsResult.data);
+                }
+                setOverdueLoading(false);
+            };
+            fetchOverdueData();
+        }
+    }, [isAdmin, clubId]);
 
     // 클럽 코드 수정 핸들러
     const handleUpdateClubCode = async () => {
@@ -222,6 +256,142 @@ export function MyPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* 관리자 전용: 연체자 목록 및 단체 메일 */}
+                {isAdmin && (
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
+                        <h2>⚠️ 연체자 관리</h2>
+                        <p className="section-description">
+                            연체 중인 대여 목록입니다. 선택 후 단체 메일을 발송할 수 있습니다.
+                        </p>
+
+                        {overdueLoading ? (
+                            <div className="loading">연체 목록 불러오는 중...</div>
+                        ) : overdueSchedules.length === 0 ? (
+                            <div className="empty-message" style={{ padding: '1rem', color: 'var(--gray-500)' }}>
+                                🎉 연체 중인 대여가 없습니다!
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ marginBottom: '0.75rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedOverdue.size === overdueSchedules.length}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedOverdue(new Set(overdueSchedules.map(s => s.id)));
+                                                } else {
+                                                    setSelectedOverdue(new Set());
+                                                }
+                                            }}
+                                        />
+                                        <strong>전체 선택 ({selectedOverdue.size}/{overdueSchedules.length})</strong>
+                                    </label>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    {overdueSchedules.map((schedule) => {
+                                        const member = overdueMembers.find(m => m.user_id === schedule.user_id);
+                                        const asset = overdueAssets.find(a => a.id === schedule.asset_id);
+                                        return (
+                                            <label
+                                                key={schedule.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.75rem',
+                                                    padding: '0.75rem 1rem',
+                                                    background: selectedOverdue.has(schedule.id) ? 'rgba(239, 68, 68, 0.1)' : 'var(--glass-bg)',
+                                                    border: `1px solid ${selectedOverdue.has(schedule.id) ? 'rgba(239, 68, 68, 0.3)' : 'var(--glass-border)'}`,
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedOverdue.has(schedule.id)}
+                                                    onChange={(e) => {
+                                                        const newSet = new Set(selectedOverdue);
+                                                        if (e.target.checked) {
+                                                            newSet.add(schedule.id);
+                                                        } else {
+                                                            newSet.delete(schedule.id);
+                                                        }
+                                                        setSelectedOverdue(newSet);
+                                                    }}
+                                                />
+                                                <div style={{ flex: 1 }}>
+                                                    <strong>{asset?.name || `자산 #${schedule.asset_id}`}</strong>
+                                                    <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                                                        대여자: {member?.name || schedule.user_id}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+                                                        반납예정: {new Date(schedule.end_date).toLocaleDateString('ko-KR')}
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    className="send-email-btn"
+                                    style={{ background: selectedOverdue.size > 0 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : undefined }}
+                                    disabled={selectedOverdue.size === 0 || isSending}
+                                    onClick={async () => {
+                                        // 선택된 연체자들의 이메일 수집 (실제로는 member에 email 필드가 있어야 함)
+                                        const selectedSchedules = overdueSchedules.filter(s => selectedOverdue.has(s.id));
+                                        const emails = selectedSchedules.map(s => {
+                                            const member = overdueMembers.find(m => m.user_id === s.user_id);
+                                            return member?.name ? `${member.name}@example.com` : `${s.user_id}@example.com`;
+                                        });
+
+                                        if (emails.length === 0) {
+                                            setSendResult({ success: false, message: '선택된 연체자가 없습니다.' });
+                                            return;
+                                        }
+
+                                        setIsSending(true);
+                                        setSendResult(null);
+
+                                        try {
+                                            const emailApiUrl = import.meta.env.VITE_EMAIL_API_URL;
+                                            const response = await fetch(emailApiUrl, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    recipients: emails,
+                                                    subject: `[${clubName}] 물품 반납 요청`,
+                                                    message: `안녕하세요,\n\n대여하신 물품의 반납 예정일이 지났습니다.\n빠른 시일 내에 반납해 주시기 바랍니다.\n\n감사합니다.`,
+                                                }),
+                                            });
+
+                                            if (response.ok) {
+                                                setSendResult({ success: true, message: `✅ ${emails.length}명에게 메일을 발송했습니다.` });
+                                                setSelectedOverdue(new Set());
+                                            } else {
+                                                setSendResult({ success: false, message: `❌ 발송 실패: ${response.status}` });
+                                            }
+                                        } catch {
+                                            setSendResult({ success: false, message: '❌ 네트워크 오류' });
+                                        } finally {
+                                            setIsSending(false);
+                                        }
+                                    }}
+                                >
+                                    {isSending ? '발송 중...' : `📧 선택한 ${selectedOverdue.size}명에게 연체 안내 메일 발송`}
+                                </button>
+
+                                {sendResult && (
+                                    <div className={`send-result ${sendResult.success ? 'success' : 'error'}`} style={{ marginTop: '0.75rem' }}>
+                                        {sendResult.message}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
 

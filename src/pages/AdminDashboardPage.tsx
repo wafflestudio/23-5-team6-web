@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, type ClubMember, type Asset, type AssetStatistics } from '@/api/client';
+import { useState, useEffect, useRef } from 'react';
+import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, getAssetPictures, addAssetPicture, setMainPicture, deleteAssetPicture, getPictureUrl, getSchedules, type ClubMember, type Asset, type AssetStatistics, type AssetPicture, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
-type TabType = 'assets' | 'members';
+type TabType = 'assets' | 'rentals' | 'members';
 
 // permission 값에 따른 상태 태그
 const getPermissionTag = (permission: number) => {
@@ -54,6 +54,15 @@ export function AdminDashboardPage() {
     const [statsLoading, setStatsLoading] = useState(false);
     const [statsError, setStatsError] = useState<string | null>(null);
 
+    // 자산 사진 상태
+    const [assetPictures, setAssetPictures] = useState<AssetPicture[]>([]);
+    const [picturesLoading, setPicturesLoading] = useState(false);
+    const [uploadingPicture, setUploadingPicture] = useState(false);
+    const pictureInputRef = useRef<HTMLInputElement>(null);
+
+    // 각 자산의 대표 사진 ID 저장 (assetId -> pictureId)
+    const [assetMainPictures, setAssetMainPictures] = useState<Record<number, number | null>>({});
+
     // 동아리 멤버 상태
     const [clubMembers, setClubMembers] = useState<ClubMember[]>([]);
     const [membersLoading, setMembersLoading] = useState(true);
@@ -62,6 +71,12 @@ export function AdminDashboardPage() {
     const [myClubName, setMyClubName] = useState<string>('');
     const [myClubCode, setMyClubCode] = useState<string>('');
 
+    // 대여 현황 상태
+    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [schedulesLoading, setSchedulesLoading] = useState(false);
+    const [schedulesError, setSchedulesError] = useState<string | null>(null);
+    const [scheduleFilter, setScheduleFilter] = useState<string>('all'); // 'all' | 'inuse' | 'overdue' | 'returned'
+
     // 자산 목록 가져오기 함수
     const fetchAssets = async (clubId: number) => {
         setAssetsLoading(true);
@@ -69,10 +84,40 @@ export function AdminDashboardPage() {
         const result = await getAssets(clubId);
         if (result.success && result.data) {
             setAssets(result.data);
+
+            // 각 자산의 대표 사진 조회
+            const mainPictures: Record<number, number | null> = {};
+            await Promise.all(result.data.map(async (asset) => {
+                const picturesResult = await getAssetPictures(asset.id);
+                if (picturesResult.success && picturesResult.data) {
+                    const mainPic = picturesResult.data.find(p => p.is_main);
+                    mainPictures[asset.id] = mainPic ? mainPic.id : null;
+                } else {
+                    mainPictures[asset.id] = null;
+                }
+            }));
+            setAssetMainPictures(mainPictures);
         } else {
             setAssetsError(result.error || '자산 목록을 불러오는데 실패했습니다.');
         }
         setAssetsLoading(false);
+    };
+
+    // 대여 현황 가져오기 함수
+    const fetchSchedules = async (clubId: number, status?: string) => {
+        setSchedulesLoading(true);
+        setSchedulesError(null);
+        const params: { status?: string; size?: number } = { size: 100 };
+        if (status && status !== 'all') {
+            params.status = status;
+        }
+        const result = await getSchedules(clubId, params);
+        if (result.success && result.data) {
+            setSchedules(result.data.schedules);
+        } else {
+            setSchedulesError(result.error || '대여 현황을 불러오는데 실패했습니다.');
+        }
+        setSchedulesLoading(false);
     };
 
     // 엑셀 업로드 상태
@@ -188,6 +233,30 @@ export function AdminDashboardPage() {
         }
     };
 
+    // 엑셀 템플릿 다운로드 함수
+    const handleDownloadTemplate = () => {
+        // CSV 형식의 템플릿 생성 (엑셀에서 열 수 있음)
+        const headers = ['name', 'description', 'quantity', 'location'];
+        const exampleData = [
+            '노트북', '맥북 프로 14인치', '3', '동아리방 선반'
+        ];
+
+        const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
+
+        // BOM 추가 (한글 인코딩 문제 해결)
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '물품_일괄등록_템플릿.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     // 1. 모달 열기 핸들러
     const handleOpenExcelModal = () => {
         setSelectedExcelFile(null); // 이전 선택 초기화
@@ -198,8 +267,8 @@ export function AdminDashboardPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (!file.name.match(/\.(xlsx|xls)$/)) {
-                alert('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.');
+            if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                alert('엑셀 또는 CSV 파일(.xlsx, .xls, .csv)만 업로드 가능합니다.');
                 e.target.value = '';
                 return;
             }
@@ -256,6 +325,15 @@ export function AdminDashboardPage() {
             } else {
                 setStatsError(statsResult.error || '통계를 불러올 수 없습니다.');
             }
+
+            // 사진 목록 불러오기
+            setPicturesLoading(true);
+            setAssetPictures([]);
+            const picturesResult = await getAssetPictures(asset.id);
+            setPicturesLoading(false);
+            if (picturesResult.success && picturesResult.data) {
+                setAssetPictures(picturesResult.data);
+            }
         }
     };
 
@@ -271,7 +349,13 @@ export function AdminDashboardPage() {
         setIsUpdatingAsset(true);
         setError(null);
 
+        if (!myClubId) {
+            setError('동아리 정보가 없습니다.');
+            return;
+        }
+
         const result = await updateAsset(expandedAssetId, {
+            club_id: myClubId,
             name: editingAsset.name.trim(),
             description: editingAsset.description.trim(),
             quantity: editingAsset.quantity,
@@ -309,6 +393,133 @@ export function AdminDashboardPage() {
         }
     };
 
+    // 이미지 압축 함수 (Canvas API 사용)
+    const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<File> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 리사이즈 비율 계산
+                    let { width, height } = img;
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    // Canvas에 그리기
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Canvas context not available'));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Blob으로 변환 (JPEG 형식, 지정된 품질)
+                    canvas.toBlob(
+                        (blob) => {
+                            if (!blob) {
+                                reject(new Error('Blob conversion failed'));
+                                return;
+                            }
+                            // File 객체로 변환
+                            const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            console.log(`이미지 압축: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
+                            resolve(compressedFile);
+                        },
+                        'image/jpeg',
+                        quality
+                    );
+                };
+                img.onerror = () => reject(new Error('Image load failed'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('File read failed'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    // 사진 업로드 핸들러
+    const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !expandedAssetId) return;
+
+        // 이미지 파일 검증
+        if (!file.type.startsWith('image/')) {
+            setError('이미지 파일만 업로드 가능합니다.');
+            return;
+        }
+
+        setUploadingPicture(true);
+
+        try {
+            // 이미지 압축 (500KB 이상인 경우에만)
+            let uploadFile = file;
+            if (file.size > 500 * 1024) {
+                uploadFile = await compressImage(file);
+            }
+
+            const isMain = assetPictures.length === 0; // 첫 번째 사진은 자동으로 대표 설정
+            const result = await addAssetPicture(expandedAssetId, uploadFile, isMain);
+
+            if (result.success) {
+                // 사진 목록 새로고침
+                const picturesResult = await getAssetPictures(expandedAssetId);
+                if (picturesResult.success && picturesResult.data) {
+                    setAssetPictures(picturesResult.data);
+                }
+            } else {
+                setError(result.error || '사진 업로드에 실패했습니다.');
+            }
+        } catch (err) {
+            console.error('Image compression error:', err);
+            setError('이미지 처리 중 오류가 발생했습니다.');
+        }
+
+        setUploadingPicture(false);
+
+        // input 초기화
+        if (pictureInputRef.current) {
+            pictureInputRef.current.value = '';
+        }
+    };
+
+    // 대표 사진 설정 핸들러
+    const handleSetMainPicture = async (pictureId: number) => {
+        if (!expandedAssetId) return;
+
+        const result = await setMainPicture(expandedAssetId, pictureId);
+        if (result.success) {
+            // 사진 목록 새로고침
+            const picturesResult = await getAssetPictures(expandedAssetId);
+            if (picturesResult.success && picturesResult.data) {
+                setAssetPictures(picturesResult.data);
+            }
+        } else {
+            setError(result.error || '대표 사진 설정에 실패했습니다.');
+        }
+    };
+
+    // 사진 삭제 핸들러
+    const handleDeletePicture = async (pictureId: number) => {
+        if (!expandedAssetId) return;
+        if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+
+        const result = await deleteAssetPicture(expandedAssetId, pictureId);
+        if (result.success) {
+            setAssetPictures(prev => prev.filter(p => p.id !== pictureId));
+        } else {
+            setError(result.error || '사진 삭제에 실패했습니다.');
+        }
+    };
+
     return (
         <div className="container">
             <main className="main-content admin-dashboard">
@@ -332,6 +543,15 @@ export function AdminDashboardPage() {
                         onClick={() => setActiveTab('assets')}
                     >
                         자산관리
+                    </button>
+                    <button
+                        className={`admin-tab ${activeTab === 'rentals' ? 'active' : ''}`}
+                        onClick={() => {
+                            setActiveTab('rentals');
+                            if (myClubId) fetchSchedules(myClubId, scheduleFilter);
+                        }}
+                    >
+                        대여현황
                     </button>
                     <button
                         className={`admin-tab ${activeTab === 'members' ? 'active' : ''}`}
@@ -459,11 +679,39 @@ export function AdminDashboardPage() {
                                 </div>
                                 <div className="approval-modal-content">
                                     <div className="add-asset-form">
+                                        {/* 템플릿 다운로드 안내 */}
+                                        <div style={{
+                                            marginBottom: '1rem',
+                                            padding: '0.75rem 1rem',
+                                            background: 'rgba(99, 102, 241, 0.1)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(99, 102, 241, 0.2)'
+                                        }}>
+                                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
+                                                📋 엑셀/CSV 파일 형식: <strong>name, description, quantity, location</strong>
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadTemplate}
+                                                style={{
+                                                    padding: '0.4rem 0.8rem',
+                                                    background: 'transparent',
+                                                    border: '1px solid var(--primary-color)',
+                                                    color: 'var(--primary-color)',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                ⬇️ 템플릿 다운로드
+                                            </button>
+                                        </div>
+
                                         <div className="form-group">
-                                            <label>엑셀 파일 선택 (.xlsx, .xls)</label>
+                                            <label>엑셀 파일 선택 (.xlsx, .xls, .csv)</label>
                                             <input
                                                 type="file"
-                                                accept=".xlsx, .xls"
+                                                accept=".xlsx, .xls, .csv"
                                                 onChange={handleFileChange}
                                                 disabled={isUploading}
                                                 style={{ padding: '10px 0' }}
@@ -521,7 +769,15 @@ export function AdminDashboardPage() {
                                         >
                                             <div className="asset-card-header">
                                                 <div className="asset-image">
-                                                    <div className="asset-image-placeholder">📦</div>
+                                                    {assetMainPictures[asset.id] ? (
+                                                        <img
+                                                            src={getPictureUrl(assetMainPictures[asset.id]!)}
+                                                            alt={asset.name}
+                                                            className="asset-main-picture"
+                                                        />
+                                                    ) : (
+                                                        <div className="asset-image-placeholder">📦</div>
+                                                    )}
                                                 </div>
                                                 <div className="asset-info">
                                                     <h3 className="asset-name">{asset.name}</h3>
@@ -656,6 +912,73 @@ export function AdminDashboardPage() {
                                             placeholder="예: 동아리방 선반"
                                         />
                                     </div>
+
+                                    {/* 사진 관리 섹션 */}
+                                    <div className="picture-section">
+                                        <h4 className="picture-section-title">📷 사진 관리</h4>
+
+                                        {/* 사진 업로드 */}
+                                        <div className="picture-upload-area">
+                                            <input
+                                                ref={pictureInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handlePictureUpload}
+                                                disabled={uploadingPicture}
+                                                style={{ display: 'none' }}
+                                                id="picture-upload-input"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="upload-picture-btn"
+                                                onClick={() => pictureInputRef.current?.click()}
+                                                disabled={uploadingPicture}
+                                            >
+                                                {uploadingPicture ? '업로드 중...' : '+ 사진 추가'}
+                                            </button>
+                                        </div>
+
+                                        {/* 사진 그리드 */}
+                                        {picturesLoading ? (
+                                            <div className="pictures-loading">사진 불러오는 중...</div>
+                                        ) : assetPictures.length === 0 ? (
+                                            <div className="no-pictures">등록된 사진이 없습니다.</div>
+                                        ) : (
+                                            <div className="picture-grid">
+                                                {assetPictures.map((picture) => (
+                                                    <div key={picture.id} className={`picture-item ${picture.is_main ? 'is-main' : ''}`}>
+                                                        <img
+                                                            src={getPictureUrl(picture.id)}
+                                                            alt="자산 사진"
+                                                            className="picture-preview"
+                                                        />
+                                                        {picture.is_main && (
+                                                            <span className="main-badge">대표</span>
+                                                        )}
+                                                        <div className="picture-actions">
+                                                            {!picture.is_main && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="set-main-btn"
+                                                                    onClick={() => handleSetMainPicture(picture.id)}
+                                                                >
+                                                                    대표로 설정
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="delete-picture-btn"
+                                                                onClick={() => handleDeletePicture(picture.id)}
+                                                            >
+                                                                삭제
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {error && <p className="error-message">{error}</p>}
                                     <div className="form-actions">
                                         <button
@@ -679,6 +1002,76 @@ export function AdminDashboardPage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* 대여현황 탭 */}
+                {activeTab === 'rentals' && (
+                    <div className="admin-content">
+                        {/* 상태 필터 */}
+                        <div className="schedule-filter">
+                            <button
+                                className={`filter-btn ${scheduleFilter === 'all' ? 'active' : ''}`}
+                                onClick={() => { setScheduleFilter('all'); if (myClubId) fetchSchedules(myClubId, 'all'); }}
+                            >
+                                전체
+                            </button>
+                            <button
+                                className={`filter-btn ${scheduleFilter === 'inuse' ? 'active' : ''}`}
+                                onClick={() => { setScheduleFilter('inuse'); if (myClubId) fetchSchedules(myClubId, 'inuse'); }}
+                            >
+                                대여중
+                            </button>
+                            <button
+                                className={`filter-btn ${scheduleFilter === 'overdue' ? 'active' : ''}`}
+                                onClick={() => { setScheduleFilter('overdue'); if (myClubId) fetchSchedules(myClubId, 'overdue'); }}
+                            >
+                                연체
+                            </button>
+                            <button
+                                className={`filter-btn ${scheduleFilter === 'returned' ? 'active' : ''}`}
+                                onClick={() => { setScheduleFilter('returned'); if (myClubId) fetchSchedules(myClubId, 'returned'); }}
+                            >
+                                반납완료
+                            </button>
+                        </div>
+
+                        {schedulesLoading ? (
+                            <div className="loading">대여 현황을 불러오는 중...</div>
+                        ) : schedulesError ? (
+                            <div className="error-message">{schedulesError}</div>
+                        ) : schedules.length === 0 ? (
+                            <div className="empty-state">
+                                <p>대여 기록이 없습니다.</p>
+                            </div>
+                        ) : (
+                            <div className="schedule-list">
+                                {schedules.map((schedule) => {
+                                    const asset = assets.find(a => a.id === schedule.asset_id);
+                                    const member = clubMembers.find(m => m.user_id === schedule.user_id);
+                                    return (
+                                        <div key={schedule.id} className={`schedule-card ${schedule.status}`}>
+                                            <div className="schedule-info">
+                                                <h3 className="schedule-asset">
+                                                    {asset?.name || `자산 #${schedule.asset_id}`}
+                                                </h3>
+                                                <p className="schedule-user">
+                                                    대여자: {member?.name || schedule.user_id}
+                                                </p>
+                                                <p className="schedule-date">
+                                                    {new Date(schedule.start_date).toLocaleDateString('ko-KR')} ~ {new Date(schedule.end_date).toLocaleDateString('ko-KR')}
+                                                </p>
+                                            </div>
+                                            <div className="schedule-status">
+                                                <span className={`status-tag ${schedule.status === 'inuse' ? 'pending' : schedule.status === 'overdue' ? 'overdue' : 'approved'}`}>
+                                                    {schedule.status === 'inuse' ? '대여중' : schedule.status === 'overdue' ? '연체' : '반납완료'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
 
