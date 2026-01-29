@@ -969,7 +969,7 @@ export const deleteAsset = async (assetId: number): Promise<{ success: boolean; 
 interface ExcelUploadResponse {
     imported: number; // 성공적으로 등록된 개수
     failed: Array<{
-        [key: string]: any; // 실패한 데이터 정보 (필요 시 더 구체적으로 정의 가능)
+        [key: string]: unknown; // 실패한 데이터 정보 (필요 시 더 구체적으로 정의 가능)
     }>;
 }
 
