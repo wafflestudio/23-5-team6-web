@@ -94,7 +94,7 @@
     align-items: right;
 }
 
-.upload-btn{
+.upload-btn {
     background: #2E3D57
 }
 
@@ -152,6 +152,12 @@
 
 .asset-image-placeholder {
     font-size: 2.5rem;
+}
+
+.asset-main-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .asset-info {
@@ -823,4 +829,238 @@
 
 .edit-asset-btn:active {
     transform: translateY(0);
+}
+
+/* Picture Management Section */
+.picture-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.picture-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.picture-upload-area {
+    margin-bottom: 1rem;
+}
+
+.upload-picture-btn {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.upload-picture-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.upload-picture-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.pictures-loading,
+.no-pictures {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    padding: 1rem;
+    text-align: center;
+    background: var(--glass-bg);
+    border-radius: 8px;
+}
+
+.picture-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.picture-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    aspect-ratio: 1;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.picture-item.is-main {
+    border-color: var(--primary-color);
+}
+
+.picture-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.picture-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.main-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 0.2rem 0.5rem;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 4px;
+}
+
+.picture-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.picture-item:hover .picture-actions {
+    opacity: 1;
+}
+
+.set-main-btn,
+.delete-picture-btn {
+    padding: 0.3rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.set-main-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+}
+
+.set-main-btn:hover {
+    background: white;
+}
+
+.delete-picture-btn {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+.delete-picture-btn:hover {
+    background: #ef4444;
+}
+
+/* Schedule/Rentals Tab Styles */
+.schedule-filter {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-color);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    border-color: var(--primary-color);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.schedule-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.schedule-card:hover {
+    border-color: var(--primary-color);
+}
+
+.schedule-card.overdue {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.schedule-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.schedule-asset {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-color);
+}
+
+.schedule-user {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin: 0;
+}
+
+.schedule-date {
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    margin: 0;
+}
+
+.schedule-status {
+    flex-shrink: 0;
+}
+
+.status-tag.overdue {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }

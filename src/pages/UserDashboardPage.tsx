@@ -132,9 +132,36 @@ export function UserDashboardPage() {
         }
     };
 
-    // 반납 핸들러
-    const handleReturnItem = async (scheduleId: number) => {
-        if (window.confirm('반납하시겠습니까?')) {
+    // Haversine 공식으로 두 GPS 좌표 사이 거리 계산 (미터 단위)
+    const calculateDistance = (
+        lat1: number, lng1: number,
+        lat2: number, lng2: number
+    ): number => {
+        const R = 6371000; // 지구 반지름 (미터)
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    // 반납 핸들러 (GPS 위치 기반)
+    const handleReturnItem = async (scheduleId: number, clubId: number) => {
+        if (!window.confirm('현재 위치에서 반납하시겠습니까?')) return;
+
+        // 동아리 위치 정보 가져오기
+        const clubResult = await getClub(clubId);
+        if (!clubResult.success || !clubResult.data) {
+            alert('동아리 정보를 불러올 수 없습니다.');
+            return;
+        }
+
+        const clubData = clubResult.data;
+
+        // 동아리 위치가 설정되어 있지 않은 경우 GPS 검사 없이 반납 허용
+        if (!clubData.location_lat || !clubData.location_lng) {
             const result = await returnItemSimple(scheduleId);
             if (result.success) {
                 // 목록 갱신
@@ -152,7 +179,57 @@ export function UserDashboardPage() {
             } else {
                 alert(result.error || '반납 실패');
             }
+            return;
         }
+
+        // 동아리 위치 (API는 degrees * 1,000,000 형식)
+        const clubLat = clubData.location_lat / 1000000;
+        const clubLng = clubData.location_lng / 1000000;
+
+        // 현재 GPS 위치 가져오기
+        if (!navigator.geolocation) {
+            alert('이 브라우저에서는 GPS를 지원하지 않습니다.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                // 거리 계산
+                const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
+
+                if (distance > 15) {
+                    alert(`⚠️ 동아리 위치에서 너무 멀리 있습니다.\n\n현재 거리: ${distance.toFixed(1)}m\n허용 거리: 15m 이내\n\n동아리 위치 근처에서 반납해주세요.`);
+                    return;
+                }
+
+                // 15m 이내: 반납 진행
+                const result = await returnItemSimple(scheduleId, { lat: userLat, lng: userLng });
+                if (result.success) {
+                    // 목록 갱신
+                    const allSchedules: Schedule[] = [];
+                    await Promise.all(
+                        myClubs.map(async (club) => {
+                            const res = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                            if (res.success && res.data) {
+                                allSchedules.push(...res.data.schedules);
+                            }
+                        })
+                    );
+                    allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+                    setSchedules(allSchedules);
+                } else {
+                    alert(result.error || '반납 실패');
+                }
+            },
+            (error) => {
+                console.error('GPS error:', error);
+                alert('위치를 가져올 수 없습니다. GPS 권한을 확인해주세요.');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        )
     };
 
     const formatDate = (dateStr: string) => {
@@ -289,7 +366,7 @@ export function UserDashboardPage() {
                                         {schedule.status === 'in_use' && (
                                             <button
                                                 className="primary-btn"
-                                                onClick={() => handleReturnItem(schedule.id)}
+                                                onClick={() => handleReturnItem(schedule.id, schedule.club_id)}
                                             >
                                                 반납하기
                                             </button>
