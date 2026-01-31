@@ -342,12 +342,12 @@ export function MyPage() {
                                     style={{ background: selectedOverdue.size > 0 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : undefined }}
                                     disabled={selectedOverdue.size === 0 || isSending}
                                     onClick={async () => {
-                                        // 선택된 연체자들의 이메일 수집 (실제로는 member에 email 필드가 있어야 함)
+                                        // 선택된 연체자들의 이메일 수집
                                         const selectedSchedules = overdueSchedules.filter(s => selectedOverdue.has(s.id));
                                         const emails = selectedSchedules.map(s => {
                                             const member = overdueMembers.find(m => m.user_id === s.user_id);
-                                            return member?.name ? `${member.name}@example.com` : `${s.user_id}@example.com`;
-                                        });
+                                            return member?.email || '';
+                                        }).filter(email => email !== '');
 
                                         if (emails.length === 0) {
                                             setSendResult({ success: false, message: '선택된 연체자가 없습니다.' });
