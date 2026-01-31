@@ -37,22 +37,6 @@ interface ErrorResponse {
     detail: string;
 }
 
-// 물품 관련 타입
-export interface ClubItem {
-    item_id: string;
-    name: string;
-    status: 'borrowed' | 'returned' | 'overdue' | 'available';
-    borrowed_at: string | null;
-    expected_return_date: string | null;
-    current_holder: string | null;
-}
-
-interface ClubItemsResponse {
-    total: number;
-    items: ClubItem[];
-}
-
-
 // 관리자 가입 신청 관련 타입
 export interface ApplyListItem {
     id: string;
@@ -137,8 +121,11 @@ export const getUserType = (): number | null => {
     }
     const userType = sessionStorage.getItem(TOKEN_KEYS.USER_TYPE);
     if (userType) {
-        memoryTokenCache.userType = parseInt(userType, 10);
-        return memoryTokenCache.userType;
+        const parsed = parseInt(userType, 10);
+        if (!Number.isNaN(parsed)) {
+            memoryTokenCache.userType = parsed;
+            return memoryTokenCache.userType;
+        }
     }
     return null;
 };
@@ -172,7 +159,12 @@ export const syncMemoryToStorage = () => {
     memoryTokenCache.refresh = sessionStorage.getItem(TOKEN_KEYS.REFRESH);
     memoryTokenCache.userName = sessionStorage.getItem(TOKEN_KEYS.USER_NAME);
     const typeStr = sessionStorage.getItem(TOKEN_KEYS.USER_TYPE);
-    memoryTokenCache.userType = typeStr ? parseInt(typeStr, 10) : null;
+    if (typeStr) {
+        const parsed = parseInt(typeStr, 10);
+        memoryTokenCache.userType = Number.isNaN(parsed) ? null : parsed;
+    } else {
+        memoryTokenCache.userType = null;
+    }
 };
 
 export const clearTokens = () => {
@@ -420,10 +412,12 @@ export const refreshToken = async (): Promise<{ success: boolean; newAccessToken
 
         if (response.status === 200) {
             const newAccessToken = await response.text();
+            // 따옴표 제거 (JSON 문자열로 올 경우)
+            const cleanToken = newAccessToken.replace(/^"|"$/g, '');
             // access_token만 갱신
-            memoryTokenCache.access = newAccessToken;
-            sessionStorage.setItem(TOKEN_KEYS.ACCESS, newAccessToken);
-            return { success: true, newAccessToken };
+            memoryTokenCache.access = cleanToken;
+            sessionStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
+            return { success: true, newAccessToken: cleanToken };
         } else {
             clearTokens();
             return { success: false, error: 'Token refresh failed' };
@@ -544,25 +538,6 @@ export const updateClubLocation = async (
         }
     } catch (error) {
         console.error('Update club location error:', error);
-        return { success: false, error: 'Network error occurred' };
-    }
-};
-
-// 동아리 물품 목록 조회
-export const getClubItems = async (clubId: number): Promise<{ success: boolean; data?: ClubItemsResponse; error?: string }> => {
-    try {
-        const response = await authFetch(`/api/clubs/${clubId}/items`, {
-            method: 'GET',
-        });
-
-        if (response.status === 200) {
-            const result: ClubItemsResponse = await response.json();
-            return { success: true, data: result };
-        } else {
-            return { success: false, error: '물품 목록을 불러올 수 없습니다.' };
-        }
-    } catch (error) {
-        console.error('Get club items error:', error);
         return { success: false, error: 'Network error occurred' };
     }
 };

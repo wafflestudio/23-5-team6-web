@@ -9,12 +9,18 @@ export function KakaoMapPicker({ initialLocation, onLocationSelect }: KakaoMapPi
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<kakao.maps.Map | null>(null);
     const markerRef = useRef<kakao.maps.Marker | null>(null);
+    const onLocationSelectRef = useRef(onLocationSelect);
     const [isLoaded, setIsLoaded] = useState(() => {
         return !!(window.kakao && window.kakao.maps);
     });
     const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(
         initialLocation || null
     );
+
+    // 콜백 참조 업데이트 (불필요한 리렌더링 방지)
+    useEffect(() => {
+        onLocationSelectRef.current = onLocationSelect;
+    }, [onLocationSelect]);
 
     useEffect(() => {
         if (isLoaded) return;
@@ -67,12 +73,12 @@ export function KakaoMapPicker({ initialLocation, onLocationSelect }: KakaoMapPi
 
                 marker.setPosition(latlng);
                 setSelectedCoords({ lat, lng });
-                onLocationSelect?.(lat, lng);
+                onLocationSelectRef.current?.(lat, lng);
             });
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [isLoaded, initialLocation, onLocationSelect]);
+    }, [isLoaded, initialLocation]);
 
     const kakaoKey = import.meta.env.VITE_KAKAO_MAP_KEY;
     const isKeyConfigured = kakaoKey && kakaoKey !== 'YOUR_KEY_HERE';
