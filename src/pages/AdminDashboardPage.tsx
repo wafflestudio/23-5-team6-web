@@ -75,7 +75,7 @@ export function AdminDashboardPage() {
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [schedulesLoading, setSchedulesLoading] = useState(false);
     const [schedulesError, setSchedulesError] = useState<string | null>(null);
-    const [scheduleFilter, setScheduleFilter] = useState<string>('all'); // 'all' | 'inuse' | 'overdue' | 'returned'
+    const [scheduleFilter, setScheduleFilter] = useState<string>('all');
 
     // 자산 목록 가져오기 함수
     const fetchAssets = async (clubId: number) => {
@@ -167,8 +167,6 @@ export function AdminDashboardPage() {
 
         fetchClubData();
     }, []);
-
-
 
     const handleDeleteMember = async (memberId: number) => {
         if (!confirm('정말 이 멤버를 삭제하시겠습니까?')) {

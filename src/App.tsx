@@ -13,6 +13,7 @@ import { AdminFAB } from '@/components/AdminFAB';
 import { ReturnDetailPage } from './pages/ReturnDetailPage';
 import { UserDashboardPage } from './pages/UserDashboardPage';
 import { MyPage } from '@/pages/MyPage';
+import { GoogleCallbackPage } from '@/pages/GoogleCallbackPage';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/user/dashboard" element={<UserDashboardPage />} />
           <Route path="/return/detail/:itemId" element={<ReturnDetailPage />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
         </Routes>
         <AdminFAB />
         <ToastContainer />
