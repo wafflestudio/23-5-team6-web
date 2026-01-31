@@ -475,10 +475,10 @@ export interface Club {
     location_lng?: number;
 }
 
-// 관리자의 동아리 목록 조회 (GET /api/clubs)
+// 내 동아리 목록 조회 (GET /api/clubs/me)
 export const getMyClubs = async (): Promise<{ success: boolean; data?: Club[]; error?: string }> => {
     try {
-        const response = await authFetch('/api/clubs', {
+        const response = await authFetch('/api/clubs/me', {
             method: 'GET',
         });
 
@@ -699,6 +699,7 @@ export interface ClubMember {
     permission: number; // 0: 일반 회원, 1: 관리자, 2: 가입대기
     id: number;
     name: string;
+    email: string;
 }
 
 export interface ClubMembersResponse {
