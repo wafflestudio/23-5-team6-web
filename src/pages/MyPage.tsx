@@ -191,21 +191,25 @@ export function MyPage() {
     const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
     const [locationUpdateResult, setLocationUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
 
-    // 관리자 클럽 정보 로드
+    // 관리자 클럽 정보 로드 (병렬 처리)
     useEffect(() => {
         if (isAdmin) {
             const fetchClubInfo = async () => {
-                const result = await getMyAdminClub();
-                if (result.success && result.data) {
-                    setClubId(result.data.club_id);
-                    setClubName(result.data.club_name);
-                    setCurrentClubCode(result.data.club_code);
+                const [adminClubResult, clubsResult] = await Promise.allSettled([
+                    getMyAdminClub(),
+                    getMyClubs(),
+                ]);
+
+                // 관리자 클럽 정보
+                if (adminClubResult.status === 'fulfilled' && adminClubResult.value.success && adminClubResult.value.data) {
+                    setClubId(adminClubResult.value.data.club_id);
+                    setClubName(adminClubResult.value.data.club_name);
+                    setCurrentClubCode(adminClubResult.value.data.club_code);
                 }
 
                 // 위치 정보 로드
-                const clubsResult = await getMyClubs();
-                if (clubsResult.success && clubsResult.data && clubsResult.data.length > 0) {
-                    const myClub = clubsResult.data[0];
+                if (clubsResult.status === 'fulfilled' && clubsResult.value.success && clubsResult.value.data && clubsResult.value.data.length > 0) {
+                    const myClub = clubsResult.value.data[0];
                     if (myClub.location_lat && myClub.location_lng) {
                         setClubLocation({
                             lat: myClub.location_lat / 1000000,
@@ -241,26 +245,31 @@ export function MyPage() {
         setIsUpdatingLocation(false);
     };
 
-    // 연체자 목록 로드
+    // 연체자 목록 로드 (병렬 처리)
     useEffect(() => {
         if (isAdmin && clubId) {
             const fetchOverdueData = async () => {
                 setOverdueLoading(true);
+
+                const [schedResult, membersResult, assetsResult] = await Promise.allSettled([
+                    getSchedules(clubId, { status: 'overdue', size: 100 }),
+                    getClubMembers({ club_id: clubId, size: 100 }),
+                    getAssets(clubId),
+                ]);
+
                 // 연체 대여 목록
-                const schedResult = await getSchedules(clubId, { status: 'overdue', size: 100 });
-                if (schedResult.success && schedResult.data) {
-                    setOverdueSchedules(schedResult.data.schedules);
+                if (schedResult.status === 'fulfilled' && schedResult.value.success && schedResult.value.data) {
+                    setOverdueSchedules(schedResult.value.data.schedules);
                 }
                 // 멤버 목록
-                const membersResult = await getClubMembers({ club_id: clubId, size: 100 });
-                if (membersResult.success && membersResult.data) {
-                    setOverdueMembers(membersResult.data.items);
+                if (membersResult.status === 'fulfilled' && membersResult.value.success && membersResult.value.data) {
+                    setOverdueMembers(membersResult.value.data.items);
                 }
                 // 자산 목록
-                const assetsResult = await getAssets(clubId);
-                if (assetsResult.success && assetsResult.data) {
-                    setOverdueAssets(assetsResult.data);
+                if (assetsResult.status === 'fulfilled' && assetsResult.value.success && assetsResult.value.data) {
+                    setOverdueAssets(assetsResult.value.data);
                 }
+
                 setOverdueLoading(false);
             };
             fetchOverdueData();
@@ -321,6 +330,11 @@ export function MyPage() {
 
         try {
             const emailApiUrl = import.meta.env.VITE_EMAIL_API_URL;
+            if (!emailApiUrl) {
+                setSendResult({ success: false, message: '❌ VITE_EMAIL_API_URL 환경변수가 설정되지 않았습니다.' });
+                setIsSending(false);
+                return;
+            }
             console.log('[DEBUG] Email API URL:', emailApiUrl);
             console.log('[DEBUG] Request body:', {
                 recipients: [recipientEmail.trim()],
@@ -600,6 +614,11 @@ export function MyPage() {
 
                                         try {
                                             const emailApiUrl = import.meta.env.VITE_EMAIL_API_URL;
+                                            if (!emailApiUrl) {
+                                                setSendResult({ success: false, message: '❌ VITE_EMAIL_API_URL 환경변수가 설정되지 않았습니다.' });
+                                                setIsSending(false);
+                                                return;
+                                            }
                                             const response = await fetch(emailApiUrl, {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
