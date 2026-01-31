@@ -41,16 +41,22 @@ export function UserDashboardPage() {
                 const clubs = result.data.items.filter(item => item.permission !== 2);
                 setMyClubs(clubs);
 
-                // 각 동아리의 이름 가져오기
+                // 각 동아리의 이름 가져오기 (개별 실패 시에도 나머지 결과 사용)
                 const names: Record<number, string> = {};
-                await Promise.all(
+                const clubResults = await Promise.allSettled(
                     clubs.map(async (club) => {
                         const clubResult = await getClub(club.club_id);
-                        if (clubResult.success && clubResult.data) {
-                            names[club.club_id] = clubResult.data.name;
-                        }
+                        return { clubId: club.club_id, clubResult };
                     })
                 );
+                clubResults.forEach((settledResult) => {
+                    if (settledResult.status === 'fulfilled') {
+                        const { clubId, clubResult } = settledResult.value;
+                        if (clubResult.success && clubResult.data) {
+                            names[clubId] = clubResult.data.name;
+                        }
+                    }
+                });
                 setClubNames(names);
             }
             setClubsLoading(false);
@@ -67,15 +73,21 @@ export function UserDashboardPage() {
             setSchedulesLoading(true);
             const allSchedules: Schedule[] = [];
 
-            // 모든 동아리 순회하며 스케줄(대여이력) 조회
-            await Promise.all(
+            // 모든 동아리 순회하며 스케줄(대여이력) 조회 (개별 실패 시에도 나머지 결과 사용)
+            const scheduleResults = await Promise.allSettled(
                 myClubs.map(async (club) => {
                     const result = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                    return result;
+                })
+            );
+            scheduleResults.forEach((settledResult) => {
+                if (settledResult.status === 'fulfilled') {
+                    const result = settledResult.value;
                     if (result.success && result.data) {
                         allSchedules.push(...result.data.schedules);
                     }
-                })
-            );
+                }
+            });
 
             // 시작일 기준 내림차순 정렬 (최신순)
             allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
@@ -113,18 +125,23 @@ export function UserDashboardPage() {
                 const clubs = refreshResult.data.items.filter(item => item.permission !== 2);
                 setMyClubs(clubs);
 
-                // 새 동아리 이름 가져오기
+                // 새 동아리 이름 가져오기 (개별 실패 시에도 나머지 결과 사용)
                 const names: Record<number, string> = { ...clubNames };
-                await Promise.all(
-                    clubs.map(async (club) => {
-                        if (!names[club.club_id]) {
-                            const clubResult = await getClub(club.club_id);
-                            if (clubResult.success && clubResult.data) {
-                                names[club.club_id] = clubResult.data.name;
-                            }
-                        }
+                const clubsToFetch = clubs.filter(club => !names[club.club_id]);
+                const clubResults = await Promise.allSettled(
+                    clubsToFetch.map(async (club) => {
+                        const clubResult = await getClub(club.club_id);
+                        return { clubId: club.club_id, clubResult };
                     })
                 );
+                clubResults.forEach((settledResult) => {
+                    if (settledResult.status === 'fulfilled') {
+                        const { clubId, clubResult } = settledResult.value;
+                        if (clubResult.success && clubResult.data) {
+                            names[clubId] = clubResult.data.name;
+                        }
+                    }
+                });
                 setClubNames(names);
             }
         } else {
@@ -164,16 +181,22 @@ export function UserDashboardPage() {
         if (!clubData.location_lat || !clubData.location_lng) {
             const result = await returnItemSimple(scheduleId);
             if (result.success) {
-                // 목록 갱신
+                // 목록 갱신 (개별 실패 시에도 나머지 결과 사용)
                 const allSchedules: Schedule[] = [];
-                await Promise.all(
+                const scheduleResults = await Promise.allSettled(
                     myClubs.map(async (club) => {
                         const res = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                        return res;
+                    })
+                );
+                scheduleResults.forEach((settledResult) => {
+                    if (settledResult.status === 'fulfilled') {
+                        const res = settledResult.value;
                         if (res.success && res.data) {
                             allSchedules.push(...res.data.schedules);
                         }
-                    })
-                );
+                    }
+                });
                 allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
                 setSchedules(allSchedules);
             } else {
@@ -208,32 +231,54 @@ export function UserDashboardPage() {
                 // 15m 이내: 반납 진행
                 const result = await returnItemSimple(scheduleId, { lat: userLat, lng: userLng });
                 if (result.success) {
-                    // 목록 갱신
+                    // 목록 갱신 (개별 실패 시에도 나머지 결과 사용)
                     const allSchedules: Schedule[] = [];
-                    await Promise.all(
+                    const scheduleResults = await Promise.allSettled(
                         myClubs.map(async (club) => {
                             const res = await getSchedules(club.club_id, { status: statusFilter || undefined });
+                            return res;
+                        })
+                    );
+                    scheduleResults.forEach((settledResult) => {
+                        if (settledResult.status === 'fulfilled') {
+                            const res = settledResult.value;
                             if (res.success && res.data) {
                                 allSchedules.push(...res.data.schedules);
                             }
-                        })
-                    );
+                        }
+                    });
                     allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
                     setSchedules(allSchedules);
                 } else {
                     alert(result.error || '반납 실패');
                 }
             },
-            (error) => {
+            (error: GeolocationPositionError) => {
                 console.error('GPS error:', error);
-                alert('위치를 가져올 수 없습니다. GPS 권한을 확인해주세요.');
+                let errorMessage = '위치를 가져올 수 없습니다.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = '위치 정보를 사용할 수 없습니다. GPS 신호를 확인해주세요.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = '위치 요청 시간이 초과되었습니다. 다시 시도해주세요.';
+                        break;
+                }
+                alert(errorMessage);
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         )
     };
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('ko-KR', {
+        const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) {
+            return '날짜 정보 없음';
+        }
+        return date.toLocaleDateString('ko-KR', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',

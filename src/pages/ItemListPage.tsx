@@ -20,10 +20,15 @@ export function ItemListPage() {
     const [returnDate, setReturnDate] = useState('');
 
     const clubIdNum = parseInt(clubId || '0', 10);
+    const isValidClubId = !Number.isNaN(clubIdNum) && clubIdNum > 0;
 
     useEffect(() => {
         const fetchAssets = async () => {
-            if (!clubIdNum) return;
+            if (!isValidClubId) {
+                setError('유효하지 않은 동아리입니다.');
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             const result = await getAssets(clubIdNum);
             if (result.success && result.data) {
@@ -35,7 +40,7 @@ export function ItemListPage() {
         };
 
         fetchAssets();
-    }, [clubIdNum, refreshKey]);
+    }, [clubIdNum, isValidClubId, refreshKey]);
 
     // 대여 버튼 클릭 핸들러
     const handleRentClick = (asset: Asset) => {

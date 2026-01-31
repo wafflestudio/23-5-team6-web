@@ -53,6 +53,11 @@ export function useForm<T extends object>({
             setLoading(true);
             try {
                 await onSubmit();
+            } catch (err) {
+                if (isMounted.current) {
+                    const message = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+                    setError(message);
+                }
             } finally {
                 if (isMounted.current) {
                     setLoading(false);
