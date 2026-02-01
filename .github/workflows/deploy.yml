@@ -23,6 +23,7 @@ jobs:
         env:
           VITE_KAKAO_MAP_KEY: ${{ secrets.VITE_KAKAO_MAP_KEY }}
           VITE_EMAIL_API_URL: ${{ secrets.VITE_EMAIL_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
           yarn install
           yarn build

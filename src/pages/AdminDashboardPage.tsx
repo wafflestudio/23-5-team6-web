@@ -75,7 +75,7 @@ export function AdminDashboardPage() {
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [schedulesLoading, setSchedulesLoading] = useState(false);
     const [schedulesError, setSchedulesError] = useState<string | null>(null);
-    const [scheduleFilter, setScheduleFilter] = useState<string>('all'); // 'all' | 'inuse' | 'overdue' | 'returned'
+    const [scheduleFilter, setScheduleFilter] = useState<string>('all');
 
     // 자산 목록 가져오기 함수
     const fetchAssets = async (clubId: number) => {
@@ -85,17 +85,23 @@ export function AdminDashboardPage() {
         if (result.success && result.data) {
             setAssets(result.data);
 
-            // 각 자산의 대표 사진 조회
+            // 각 자산의 대표 사진 조회 (개별 실패 시에도 나머지 결과 사용)
             const mainPictures: Record<number, number | null> = {};
-            await Promise.all(result.data.map(async (asset) => {
+            const pictureResults = await Promise.allSettled(result.data.map(async (asset) => {
                 const picturesResult = await getAssetPictures(asset.id);
-                if (picturesResult.success && picturesResult.data) {
-                    const mainPic = picturesResult.data.find(p => p.is_main);
-                    mainPictures[asset.id] = mainPic ? mainPic.id : null;
-                } else {
-                    mainPictures[asset.id] = null;
-                }
+                return { assetId: asset.id, picturesResult };
             }));
+            pictureResults.forEach((settledResult) => {
+                if (settledResult.status === 'fulfilled') {
+                    const { assetId, picturesResult } = settledResult.value;
+                    if (picturesResult.success && picturesResult.data) {
+                        const mainPic = picturesResult.data.find(p => p.is_main);
+                        mainPictures[assetId] = mainPic ? mainPic.id : null;
+                    } else {
+                        mainPictures[assetId] = null;
+                    }
+                }
+            });
             setAssetMainPictures(mainPictures);
         } else {
             setAssetsError(result.error || '자산 목록을 불러오는데 실패했습니다.');
@@ -150,25 +156,56 @@ export function AdminDashboardPage() {
             setMyClubName(myClub.name);
             setMyClubCode(myClub.club_code);
 
-            // 2. 해당 동아리의 모든 멤버 조회
-            const membersResult = await getClubMembers({ club_id: myClub.id });
-            if (membersResult.success && membersResult.data) {
-                setClubMembers(membersResult.data.items);
+            // 2. 멤버와 자산 목록을 병렬로 조회
+            const [membersResult, assetsResult] = await Promise.allSettled([
+                getClubMembers({ club_id: myClub.id }),
+                getAssets(myClub.id),
+            ]);
+
+            // 멤버 결과 처리
+            if (membersResult.status === 'fulfilled' && membersResult.value.success && membersResult.value.data) {
+                setClubMembers(membersResult.value.data.items);
+            } else if (membersResult.status === 'fulfilled') {
+                setMembersError(membersResult.value.error || '멤버 목록을 불러오는데 실패했습니다.');
             } else {
-                setMembersError(membersResult.error || '멤버 목록을 불러오는데 실패했습니다.');
+                setMembersError('멤버 목록을 불러오는데 실패했습니다.');
             }
             setMembersLoading(false);
 
-            // 3. 자산 목록 조회
-            fetchAssets(myClub.id);
+            // 자산 결과 처리
+            if (assetsResult.status === 'fulfilled' && assetsResult.value.success && assetsResult.value.data) {
+                setAssets(assetsResult.value.data);
+
+                // 각 자산의 대표 사진 조회 (개별 실패 시에도 나머지 결과 사용)
+                const mainPictures: Record<number, number | null> = {};
+                const pictureResults = await Promise.allSettled(assetsResult.value.data.map(async (asset) => {
+                    const picturesResult = await getAssetPictures(asset.id);
+                    return { assetId: asset.id, picturesResult };
+                }));
+                pictureResults.forEach((settledResult) => {
+                    if (settledResult.status === 'fulfilled') {
+                        const { assetId, picturesResult } = settledResult.value;
+                        if (picturesResult.success && picturesResult.data) {
+                            const mainPic = picturesResult.data.find(p => p.is_main);
+                            mainPictures[assetId] = mainPic ? mainPic.id : null;
+                        } else {
+                            mainPictures[assetId] = null;
+                        }
+                    }
+                });
+                setAssetMainPictures(mainPictures);
+            } else if (assetsResult.status === 'fulfilled') {
+                setAssetsError(assetsResult.value.error || '자산 목록을 불러오는데 실패했습니다.');
+            } else {
+                setAssetsError('자산 목록을 불러오는데 실패했습니다.');
+            }
+            setAssetsLoading(false);
         };
 
 
 
         fetchClubData();
     }, []);
-
-
 
     const handleDeleteMember = async (memberId: number) => {
         if (!confirm('정말 이 멤버를 삭제하시겠습니까?')) {
