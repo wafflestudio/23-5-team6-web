@@ -985,7 +985,9 @@ interface ExcelUploadResponse {
 }
 
 // 관리자: 엑셀 파일을 통한 물품 대량 추가
-export const uploadExcelAssets = async (formData: FormData): Promise<{ success: boolean; data?: any; error?: string }> => {
+export const uploadExcelAssets = async (
+    formData: FormData
+): Promise<{ success: boolean; data?: ExcelUploadResponse; error?: string }> => {
     try {
         // authFetch를 사용하여 인증 토큰 자동 포함 및 갱신 처리
         const response = await authFetch(`/api/assets/import`, {

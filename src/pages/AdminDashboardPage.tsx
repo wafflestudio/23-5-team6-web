@@ -313,6 +313,19 @@ export function AdminDashboardPage() {
         '등록일': 'created_at' 
     };
 
+    interface MappedAssetRow {
+        name?: string;
+        description?: string;
+        total_quantity?: number;
+        available_quantity?: number;
+        location?: string;
+        category_name?: string;
+        created_at?: string;
+        [key: string]: string | number | undefined;
+    }
+
+    type RawExcelRow = Record<string, unknown>;
+
     // 3. 실제 업로드 실행 핸들러 (모달 내 '업로드' 버튼 클릭 시)
     const handleExcelUploadSubmit = async () => {
     if (!selectedExcelFile || myClubId === null) {
@@ -330,13 +343,15 @@ export function AdminDashboardPage() {
             
             // 2. 데이터 읽기 및 헤더 변환 (한글 -> 영어)
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rawData = XLSX.utils.sheet_to_json(firstSheet) as any[];
+            const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet);
             
-            const translatedData = rawData.map(row => {
-                const newRow: any = {};
+            const translatedData = rawData.map((row: RawExcelRow) => {
+                const newRow: MappedAssetRow = {};
                 Object.keys(row).forEach(koKey => {
                     const enKey = HEADER_MAP[koKey];
-                    if (enKey) newRow[enKey] = row[koKey];
+                    if (enKey) {
+                        (newRow[enKey] as unknown) = row[koKey];
+                    }
                 });
                 return newRow;
             });
@@ -358,7 +373,7 @@ export function AdminDashboardPage() {
             const result = await uploadExcelAssets(formData);
 
             if (result.success) {
-                alert('헤더 변환 및 업로드 성공!');
+                alert(`${result.data?.imported || 0}개의 물품이 성공적으로 업로드되었습니다.`);
                 setShowExcelModal(false);
                 fetchAssets(myClubId);
             } else {
