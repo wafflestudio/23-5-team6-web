@@ -272,10 +272,10 @@ export function AdminDashboardPage() {
     };
 
 
-    // 템플릿 다운로드: 사용자 친화적인 한글 헤더 제공
+    // 템플릿 다운로드
     const handleDownloadTemplate = () => {
-        const headers = ['물품명', '설명', '수량', '위치', '등록일'];
-        const exampleData = ['노트북', '맥북 프로 14인치', '3', '동아리방 선반', '2024-01-01'];
+        const headers = ['물품명', '설명', '수량', '위치', '전체수량', '사용가능수량', '등록일'];
+        const exampleData = ['노트북', '맥북 프로 14인치', '3', '동아리방 선반', '3', '3', '2024-01-01 14:00:00'];
 
         const worksheet = XLSX.utils.aoa_to_sheet([headers, exampleData]);
         const workbook = XLSX.utils.book_new();
@@ -284,7 +284,7 @@ export function AdminDashboardPage() {
         XLSX.writeFile(workbook, '물품_일괄등록_템플릿.xlsx');
     };
 
-    // 1. 모달 열기 핸들러 (이게 없어서 에러가 났던 거예요!)
+    // 1. 엑셀 업로드 모달 열기 핸들러
     const handleOpenExcelModal = () => {
         setSelectedExcelFile(null); // 이전 선택 초기화
         setShowExcelModal(true);
@@ -303,78 +303,77 @@ export function AdminDashboardPage() {
         }
     };
 
-    // 엑셀 업로드: 한글 -> 영문 매핑 및 club_id 주입
-    const handleExcelUploadSubmit = async () => {
-        if (!selectedExcelFile || myClubId === null) {
-            alert('파일을 선택하고 동아리 정보가 로딩될 때까지 기다려주세요.');
-            return;
-        }
-
-        setIsUploading(true);
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // 1. 엑셀 데이터를 JSON으로 변환
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                
-                if (jsonData.length === 0) {
-                    alert('파일에 등록할 데이터가 없습니다.');
-                    setIsUploading(false);
-                    return;
-                }
-
-                // 2. 한글 헤더를 백엔드가 기대하는 영문 헤더로 매핑
-                const mappedData = jsonData.map((row: any) => {
-                    const qty = Number(row['수량'] || row['quantity'] || 0);
-                    return {
-                        name: String(row['물품명'] || row['name'] || '').trim(),
-                        description: String(row['설명'] || row['description'] || '').trim(),
-                        quantity: qty,
-                        location: String(row['위치'] || row['location'] || '').trim(),
-                        total_quantity: qty,
-                        available_quantity: qty,
-                        club_id: myClubId, // 현재 관리 중인 동아리 ID 주입
-                        created_at: row['등록일'] || row['created_at'] || new Date().toISOString()
-                    };
-                });
-
-                // 3. 가공된 데이터로 서버용 새 엑셀 파일 생성
-                const newSheet = XLSX.utils.json_to_sheet(mappedData);
-                const newWorkbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Data');
-                
-                const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-                const processedFile = new File([excelBuffer], 'upload.xlsx', {
-                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                });
-
-                // 4. API 호출 (수정된 uploadExcelAssets 사용)
-                const result = await uploadExcelAssets(processedFile);
-                
-                if (result.success && result.data) {
-                    const { imported, failed } = result.data;
-                    alert(`${imported}개의 물품이 등록되었습니다.`);
-                    if (failed.length > 0) console.error('실패 데이터:', failed);
-                    setShowExcelModal(false);
-                    fetchAssets(myClubId);
-                } else {
-                    alert(result.error || '업로드 중 오류가 발생했습니다.');
-                }
-            } catch (err) {
-                console.error('Excel processing error:', err);
-                alert('파일 처리 중 오류가 발생했습니다.');
-            } finally {
-                setIsUploading(false);
-            }
-        };
-
-        reader.readAsArrayBuffer(selectedExcelFile);
+    const HEADER_MAP: Record<string, string> = {
+        '물품명': 'name',
+        '설명': 'description',
+        '수량': 'quantity',
+        '위치': 'location',        
+        '사용가능수량': 'available_quantity',
+        '전체수량': 'total_quantity',
+        '등록일': 'created_at' 
     };
+
+    // 3. 실제 업로드 실행 핸들러 (모달 내 '업로드' 버튼 클릭 시)
+    const handleExcelUploadSubmit = async () => {
+    if (!selectedExcelFile || myClubId === null) {
+        alert('파일을 선택해주세요.');
+        return;
+    }
+
+    setIsUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = e.target?.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            
+            // 2. 데이터 읽기 및 헤더 변환 (한글 -> 영어)
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rawData = XLSX.utils.sheet_to_json(firstSheet) as any[];
+            
+            const translatedData = rawData.map(row => {
+                const newRow: any = {};
+                Object.keys(row).forEach(koKey => {
+                    const enKey = HEADER_MAP[koKey];
+                    if (enKey) newRow[enKey] = row[koKey];
+                });
+                return newRow;
+            });
+
+            // 3. 수정된 데이터로 새로운 엑셀 파일(워크북) 생성
+            const newWorksheet = XLSX.utils.json_to_sheet(translatedData);
+            const newWorkbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Sheet1');
+
+            // 4. 워크북을 바이너리(ArrayBuffer)로 변환
+            const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+            const finalFileBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+            // 5. FormData에 담아서 전송
+            const formData = new FormData();
+            // 백엔드에서 받는 필드명('file')에 맞춰 Blob을 파일 객체처럼 추가
+            formData.append('file', finalFileBlob, 'processed_assets.xlsx');
+
+            const result = await uploadExcelAssets(formData);
+
+            if (result.success) {
+                alert('헤더 변환 및 업로드 성공!');
+                setShowExcelModal(false);
+                fetchAssets(myClubId);
+            } else {
+                alert(result.error || '업로드 실패');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('파일 처리 중 오류가 발생했습니다.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    reader.readAsBinaryString(selectedExcelFile);
+};
 
     const handleExportAssets = () => {
     if (assets.length === 0) {
