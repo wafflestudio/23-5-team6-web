@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { linkGoogleAccount, googleLogin } from '@/api/client';
@@ -11,6 +11,8 @@ export function GoogleCallbackPage() {
     const { refreshAuth } = useAuth();
     const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
     const [message, setMessage] = useState('Google 인증 처리 중...');
+
+    const isProcessed = useRef(false);
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -43,6 +45,8 @@ export function GoogleCallbackPage() {
                 clearPKCEData();
                 return;
             }
+
+            isProcessed.current = true;
 
             const redirectUri = `${window.location.origin}/auth/google/callback`;
 
