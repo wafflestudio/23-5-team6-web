@@ -1345,10 +1345,12 @@ export const linkGoogleAccount = async (
     redirectUri: string
 ): Promise<{ success: boolean; data?: GoogleLinkResponse; error?: string }> => {
     try {
+        const accessToken = getAccessToken();
         const response = await authFetch('/api/auth/google/link', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
                 code,
@@ -1364,7 +1366,7 @@ export const linkGoogleAccount = async (
         } else if (response.status === 400) {
             return { success: false, error: '잘못된 요청입니다.' };
         } else if (response.status === 401) {
-            return { success: false, error: '인증이 만료되었습니다.' };
+            return { success: false, error: '세션이 만료되었습니다. 다시 로그인해 주세요.' };
         } else if (response.status === 409) {
             return { success: false, error: '이미 다른 계정에 연동된 Google 계정입니다.' };
         } else {
