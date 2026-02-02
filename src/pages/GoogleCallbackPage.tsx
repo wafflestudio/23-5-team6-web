@@ -16,6 +16,7 @@ export function GoogleCallbackPage() {
 
     useEffect(() => {
         if (isProcessed.current) return;
+        isProcessed.current = true;
         const handleCallback = async () => {
             const code = searchParams.get('code');
             const state = searchParams.get('state');
