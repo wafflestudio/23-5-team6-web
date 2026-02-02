@@ -335,6 +335,36 @@ export function AdminDashboardPage() {
         }
     };
 
+    const handleExportAssets = () => {
+    if (assets.length === 0) {
+        alert('내보낼 데이터가 없습니다.');
+        return;
+    }
+
+        // 1. 데이터 가공: 사용자가 보기 좋은 한글 헤더로 매핑
+        // Asset 타입의 필드들을 엑셀 열에 맞게 조정합니다.
+        const exportData = assets.map(asset => ({
+            '물품명': asset.name,
+            '설명': asset.description || '',
+            '현재수량': asset.available_quantity,
+            '전체수량': asset.total_quantity,
+            '위치': asset.location,
+            '카테고리': asset.category_name || '미지정',
+            '등록일': new Date(asset.created_at).toLocaleDateString('ko-KR')
+        }));
+
+        // 2. 워크시트 생성
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        // 3. 워크북 생성 및 시트 추가
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '자산목록');
+
+        // 4. 파일 다운로드
+        const fileName = `동아리_자산목록_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+    };
+
     // 자산 카드 클릭 핸들러
     const handleAssetClick = async (asset: Asset) => {
         if (expandedAssetId === asset.id) {
@@ -605,6 +635,12 @@ export function AdminDashboardPage() {
                                 onClick={handleOpenExcelModal}
                             >
                                 엑셀 업로드
+                            </button>
+                            <button
+                                className="member-approve-btn"
+                                onClick={handleExportAssets}
+                            >
+                                엑셀 내보내기
                             </button>
 
                             <button
