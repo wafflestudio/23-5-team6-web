@@ -679,13 +679,6 @@ export function AdminDashboardPage() {
                             </button>
                             <button
                                 className="member-approve-btn"
-                                onClick={handleExportAssets}
-                            >
-                                엑셀 내보내기
-                            </button>
-
-                            <button
-                                className="member-approve-btn"
                                 onClick={handleOpenAddAssetModal}
                             >
                                 물품 추가
@@ -833,6 +826,16 @@ export function AdminDashboardPage() {
                                                 style={{ padding: '10px 0' }}
                                             />
                                         </div>
+                                        <div style={{ marginBottom: '20px', textAlign: 'right' }}>
+                                        <button 
+                                            type="button"
+                                            className="member-approve-btn" 
+                                            onClick={handleExportAssets}
+                                            style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+                                        >
+                                            📤 현재 자산 목록 내보내기 (.xlsx)
+                                        </button>
+                                    </div>
 
                                         {selectedExcelFile && (
                                             <div style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>
