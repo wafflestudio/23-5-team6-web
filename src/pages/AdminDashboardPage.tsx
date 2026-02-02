@@ -404,7 +404,6 @@ export function AdminDashboardPage() {
             '현재수량': asset.available_quantity,
             '전체수량': asset.total_quantity,
             '위치': asset.location,
-            '카테고리': asset.category_name || '미지정',
             '등록일': new Date(asset.created_at).toLocaleDateString('ko-KR')
         }));
 
@@ -811,7 +810,7 @@ export function AdminDashboardPage() {
                                             border: '1px solid rgba(99, 102, 241, 0.2)'
                                         }}>
                                             <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
-                                                📋 엑셀/CSV 파일 형식: <strong>name, description, quantity, location, total_quantity, available_quantity, created_at</strong>
+                                                📋 엑셀/CSV 파일 형식: <strong>물품명, 설명, 현재수량, 전체수량, 위치, 카테고리, 등록일</strong>
                                             </p>
                                             <button
                                                 type="button"
