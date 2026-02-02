@@ -1346,7 +1346,7 @@ export const linkGoogleAccount = async (
 ): Promise<{ success: boolean; data?: GoogleLinkResponse; error?: string }> => {
     try {
         const accessToken = getAccessToken();
-        const response = await authFetch('/api/auth/google/link', {
+        const response = await fetch('/api/auth/google/link', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -15,6 +15,7 @@ export function GoogleCallbackPage() {
     const isProcessed = useRef(false);
 
     useEffect(() => {
+        if (isProcessed.current) return;
         const handleCallback = async () => {
             const code = searchParams.get('code');
             const state = searchParams.get('state');
@@ -46,10 +47,9 @@ export function GoogleCallbackPage() {
                 return;
             }
 
-            isProcessed.current = true;
-
             const redirectUri = `${window.location.origin}/auth/google/callback`;
 
+             isProcessed.current = true;
             try {
                 if (pkceData.mode === 'link') {
                     const result = await linkGoogleAccount(code, pkceData.codeVerifier, redirectUri);
