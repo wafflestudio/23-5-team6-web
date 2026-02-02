@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, getAssetPictures, addAssetPicture, setMainPicture, deleteAssetPicture, getPictureUrl, getSchedules, type ClubMember, type Asset, type AssetStatistics, type AssetPicture, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
+import * as XLSX from 'xlsx';
 
 type TabType = 'assets' | 'rentals' | 'members';
 
@@ -270,28 +271,23 @@ export function AdminDashboardPage() {
         }
     };
 
-    // 엑셀 템플릿 다운로드 함수
+
     const handleDownloadTemplate = () => {
-        // CSV 형식의 템플릿 생성 (엑셀에서 열 수 있음)
+        // 1. 헤더와 예시 데이터를 배열의 배열(AOA) 형태로 정의합니다.
         const headers = ['name', 'description', 'quantity', 'location', 'total_quantity', 'available_quantity', 'created_at'];
-        const exampleData = [
-            '노트북', '맥북 프로 14인치', '3', '동아리방 선반', '3', '3', '2024-01-01 14:30'
-        ];
+        const exampleData = ['노트북', '맥북 프로 14인치', '3', '동아리방 선반', '3', '3', '2024-01-01 14:30'];
 
-        const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
+        // 2. 워크시트 생성 (aoa_to_sheet 사용)
+        // [headers, exampleData] 구조로 넘겨야 한글 데이터가 열에 맞춰 들어갑니다.
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, exampleData]);
 
-        // BOM 추가 (한글 인코딩 문제 해결)
-        const bom = '\uFEFF';
-        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+        // 3. 워크북 생성 및 시트 추가
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = '물품_일괄등록_템플릿.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        // 4. 파일 쓰기 및 다운로드 (XLSX 확장자)
+        // 이 함수가 실행되면 기존의 Blob, URL.createObjectURL 코드는 전혀 필요 없습니다.
+        XLSX.writeFile(workbook, '물품_일괄등록_템플릿.xlsx');
     };
 
     // 1. 모달 열기 핸들러
@@ -731,7 +727,7 @@ export function AdminDashboardPage() {
                                             border: '1px solid rgba(99, 102, 241, 0.2)'
                                         }}>
                                             <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
-                                                📋 엑셀/CSV 파일 형식: <strong>name, description, quantity, location</strong>
+                                                📋 엑셀/CSV 파일 형식: <strong>name, description, quantity, location, total_quantity, available_quantity, created_at</strong>
                                             </p>
                                             <button
                                                 type="button"
@@ -751,10 +747,10 @@ export function AdminDashboardPage() {
                                         </div>
 
                                         <div className="form-group">
-                                            <label>엑셀 파일 선택 (.xlsx, .xls, .csv)</label>
+                                            <label>엑셀 파일 선택 (.xlsx)</label>
                                             <input
                                                 type="file"
-                                                accept=".xlsx, .xls, .csv"
+                                                accept=".xlsx"
                                                 onChange={handleFileChange}
                                                 disabled={isUploading}
                                                 style={{ padding: '10px 0' }}
