@@ -96,6 +96,13 @@ export function ReturnDetailPage() {
                 return;
             }
 
+            // 파일 크기 제한 (10MB)
+            const MAX_FILE_SIZE = 10 * 1024 * 1024;
+            if (file.size > MAX_FILE_SIZE) {
+                alert('파일 크기가 너무 큽니다. 10MB 이하의 이미지를 선택해주세요.');
+                return;
+            }
+
             try {
                 setIsCompressing(true);
 
@@ -244,7 +251,7 @@ export function ReturnDetailPage() {
                         cursor: isSubmitting || isCompressing ? 'not-allowed' : 'pointer'
                     }}
                 >
-                    {isSubmitting ? '반납 처리 중...' : '반납하기'}
+                    {isCompressing ? '이미지 압축 중...' : isSubmitting ? '반납 처리 중...' : '반납하기'}
                 </button>
             </main>
         </div>

@@ -155,39 +155,45 @@ export function ItemListPage() {
                 )}
             </main>
 
-            {isModalOpen && selectedAsset && (
-                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3>대여 신청: {selectedAsset.name}</h3>
-                        <div className="form-group" style={{ margin: '20px 0' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>반납 예정일</label>
-                            {selectedAsset.max_rental_days && (
-                                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
-                                    최대 대여 기간: {selectedAsset.max_rental_days}일
-                                </p>
-                            )}
-                            <input
-                                type="date"
-                                value={returnDate}
-                                onChange={(e) => setReturnDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
-                                max={selectedAsset.max_rental_days
-                                    ? (() => {
-                                        const maxDate = new Date();
-                                        maxDate.setDate(maxDate.getDate() + selectedAsset.max_rental_days);
-                                        return maxDate.toISOString().split('T')[0];
-                                    })()
-                                    : undefined}
-                                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                            />
-                        </div>
-                        <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
-                            <button className="confirm-btn" onClick={handleConfirmBorrow}>대여 확정</button>
-                            <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>취소</button>
+            {isModalOpen && selectedAsset && (() => {
+                // max 날짜 계산을 별도 변수로 추출
+                const today = new Date().toISOString().split('T')[0];
+                const maxReturnDate = selectedAsset.max_rental_days
+                    ? (() => {
+                        const maxDate = new Date();
+                        maxDate.setDate(maxDate.getDate() + selectedAsset.max_rental_days);
+                        return maxDate.toISOString().split('T')[0];
+                    })()
+                    : undefined;
+
+                return (
+                    <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <h3>대여 신청: {selectedAsset.name}</h3>
+                            <div className="form-group" style={{ margin: '20px 0' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>반납 예정일</label>
+                                {selectedAsset.max_rental_days && (
+                                    <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+                                        최대 대여 기간: {selectedAsset.max_rental_days}일
+                                    </p>
+                                )}
+                                <input
+                                    type="date"
+                                    value={returnDate}
+                                    onChange={(e) => setReturnDate(e.target.value)}
+                                    min={today}
+                                    max={maxReturnDate}
+                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                                />
+                            </div>
+                            <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
+                                <button className="confirm-btn" onClick={handleConfirmBorrow}>대여 확정</button>
+                                <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>취소</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

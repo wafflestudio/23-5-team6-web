@@ -788,6 +788,9 @@ export function MyPage() {
                                         <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
                                             <strong>주의:</strong> 이 작업은 되돌릴 수 없습니다.
                                         </p>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
+                                            동아리가 삭제되면 <strong>자동으로 로그아웃</strong>됩니다.
+                                        </p>
                                         <p style={{ margin: 0, fontSize: '0.9rem' }}>
                                             삭제를 확인하려면 동아리 이름 <strong>"{clubName}"</strong>을(를) 정확히 입력해주세요.
                                         </p>
