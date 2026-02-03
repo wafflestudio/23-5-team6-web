@@ -323,6 +323,9 @@ interface AdminSignupRequest {
     password: string;
     club_name: string;
     club_description: string;
+    club_code?: string;
+    location_lat: number; // degrees * 1,000,000
+    location_lng: number; // degrees * 1,000,000
 }
 
 interface AdminSignupResponse {
@@ -332,6 +335,8 @@ interface AdminSignupResponse {
     club_id: number;
     club_name: string;
     club_code: string;
+    location_lat?: number;
+    location_lng?: number;
 }
 
 // 관리자 회원가입
@@ -538,6 +543,31 @@ export const updateClubLocation = async (
         }
     } catch (error) {
         console.error('Update club location error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 동아리 삭제 (DELETE /api/clubs/{club_id}) - 관리자 전용
+export const deleteClub = async (clubId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/clubs/${clubId}`, {
+            method: 'DELETE',
+        });
+
+        if (response.status === 204) {
+            showNotification('동아리가 삭제되었습니다.');
+            return { success: true };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 403) {
+            return { success: false, error: '권한이 없습니다.' };
+        } else if (response.status === 404) {
+            return { success: false, error: '동아리를 찾을 수 없습니다.' };
+        } else {
+            return { success: false, error: '동아리 삭제에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Delete club error:', error);
         return { success: false, error: 'Network error occurred' };
     }
 };
@@ -839,6 +869,7 @@ interface AddAssetRequest {
     category_id?: number;
     quantity: number;
     location: string;
+    max_rental_days?: number;
 }
 
 // 관리자: 물품 추가
@@ -891,6 +922,7 @@ export interface Asset {
     available_quantity: number;
     location: string;
     created_at: string;
+    max_rental_days?: number;
 }
 
 // 자산 목록 조회 (GET /api/assets/{club_id}) - 인증 불필요
@@ -920,6 +952,7 @@ interface UpdateAssetRequest {
     category_id?: number;
     quantity?: number;
     location?: string;
+    max_rental_days?: number;
 }
 
 // 관리자: 자산 수정 (PATCH /api/admin/assets/{asset_id})
@@ -1010,8 +1043,8 @@ export const uploadExcelAssets = async (
 
 // 사용자: 반납 관련 타입
 interface ReturnResponse {
-    id: string;
-    item_id: string;
+    id: number;
+    item_id: number;
     user_id: string;
     status: string;
     borrowed_at: string;
@@ -1151,7 +1184,7 @@ export interface AssetStatistics {
     recent_avg_duration: number;
     unique_borrower_count: number;
     last_borrowed_at: string | null;
-    last_updated_at: string | null;
+    last_updated_at: string;
 }
 
 // 자산 통계 조회 (GET /api/statistics/{asset_id})

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, type Schedule, type ClubMember, type Asset } from '@/api/client';
+import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, deleteClub, clearTokens, type Schedule, type ClubMember, type Asset } from '@/api/client';
 import { buildGoogleOAuthURL } from '@/utils/pkce';
 import { KakaoMapPicker } from '@/components/KakaoMapPicker';
 import '@/styles/App.css';
@@ -159,7 +160,14 @@ function GoogleLinkSection() {
 }
 
 export function MyPage() {
+    const navigate = useNavigate();
     const { userName, isAdmin } = useAuth();
+
+    // 동아리 삭제 상태
+    const [showDeleteClubModal, setShowDeleteClubModal] = useState(false);
+    const [deleteClubConfirmName, setDeleteClubConfirmName] = useState('');
+    const [isDeletingClub, setIsDeletingClub] = useState(false);
+    const [deleteClubError, setDeleteClubError] = useState<string | null>(null);
 
     // 클럽 정보 상태
     // const [clubId, setClubId] = useState<number | null>(null);
@@ -709,6 +717,151 @@ export function MyPage() {
                                 {isSending ? '전송 중...' : '이메일 전송'}
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {/* 관리자 전용: 동아리 삭제 */}
+                {isAdmin && clubId && (
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                        <h2>⚠️ 동아리 삭제</h2>
+                        <p className="section-description" style={{ color: '#ef4444' }}>
+                            동아리를 삭제하면 모든 멤버, 자산, 대여 기록이 영구적으로 삭제됩니다.
+                        </p>
+
+                        <button
+                            className="delete-club-btn"
+                            onClick={() => {
+                                setDeleteClubConfirmName('');
+                                setDeleteClubError(null);
+                                setShowDeleteClubModal(true);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            동아리 삭제
+                        </button>
+
+                        {/* 동아리 삭제 확인 모달 */}
+                        {showDeleteClubModal && (
+                            <div
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.5)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 1000
+                                }}
+                                onClick={() => !isDeletingClub && setShowDeleteClubModal(false)}
+                            >
+                                <div
+                                    style={{
+                                        background: 'var(--card-bg, #1f2937)',
+                                        borderRadius: '16px',
+                                        padding: '1.5rem',
+                                        maxWidth: '400px',
+                                        width: '90%',
+                                        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h3 style={{ margin: '0 0 1rem', color: '#ef4444' }}>⚠️ 동아리 삭제 확인</h3>
+                                    <div style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: '8px',
+                                        padding: '1rem',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
+                                            <strong>주의:</strong> 이 작업은 되돌릴 수 없습니다.
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                                            삭제를 확인하려면 동아리 이름 <strong>"{clubName}"</strong>을(를) 정확히 입력해주세요.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={deleteClubConfirmName}
+                                        onChange={(e) => setDeleteClubConfirmName(e.target.value)}
+                                        placeholder="동아리 이름 입력"
+                                        disabled={isDeletingClub}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: '8px',
+                                            border: '1px solid var(--glass-border)',
+                                            background: 'var(--glass-bg)',
+                                            color: 'var(--text-color)',
+                                            marginBottom: '0.75rem',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                    {deleteClubError && (
+                                        <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: '0 0 0.75rem' }}>{deleteClubError}</p>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button
+                                            onClick={() => setShowDeleteClubModal(false)}
+                                            disabled={isDeletingClub}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--glass-border)',
+                                                background: 'transparent',
+                                                color: 'var(--text-color)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!clubId || deleteClubConfirmName !== clubName) return;
+                                                setIsDeletingClub(true);
+                                                setDeleteClubError(null);
+                                                const result = await deleteClub(clubId);
+                                                if (result.success) {
+                                                    setShowDeleteClubModal(false);
+                                                    clearTokens();
+                                                    navigate('/');
+                                                } else {
+                                                    setDeleteClubError(result.error || '동아리 삭제에 실패했습니다.');
+                                                }
+                                                setIsDeletingClub(false);
+                                            }}
+                                            disabled={isDeletingClub || deleteClubConfirmName !== clubName}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                background: deleteClubConfirmName === clubName ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
+                                                color: 'white',
+                                                fontWeight: 600,
+                                                cursor: deleteClubConfirmName === clubName ? 'pointer' : 'not-allowed',
+                                                opacity: isDeletingClub ? 0.7 : 1
+                                            }}
+                                        >
+                                            {isDeletingClub ? '삭제 중...' : '영구 삭제'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
