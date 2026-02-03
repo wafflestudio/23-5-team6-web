@@ -74,7 +74,7 @@ interface ApproveUserResponse {
     status: string;
 }
 
-// Token 및 사용자 정보 관리 - sessionStorage 사용 (탭 종료 시 자동 삭제)
+// Token 및 사용자 정보 관리 - localStorage 사용 (탭 종료 시 자동 삭제)
 const TOKEN_KEYS = {
     ACCESS: 'access_token',
     REFRESH: 'refresh_token',
@@ -93,22 +93,22 @@ const memoryTokenCache: { access: string | null; refresh: string | null; userNam
 export const saveTokens = (accessToken: string, refreshToken: string) => {
     memoryTokenCache.access = accessToken;
     memoryTokenCache.refresh = refreshToken;
-    sessionStorage.setItem(TOKEN_KEYS.ACCESS, accessToken);
-    sessionStorage.setItem(TOKEN_KEYS.REFRESH, refreshToken);
+    localStorage.setItem(TOKEN_KEYS.ACCESS, accessToken);
+    localStorage.setItem(TOKEN_KEYS.REFRESH, refreshToken);
 };
 
 export const saveUserInfo = (userName: string, userType: number) => {
     memoryTokenCache.userName = userName;
     memoryTokenCache.userType = userType;
-    sessionStorage.setItem(TOKEN_KEYS.USER_NAME, userName);
-    sessionStorage.setItem(TOKEN_KEYS.USER_TYPE, userType.toString());
+    localStorage.setItem(TOKEN_KEYS.USER_NAME, userName);
+    localStorage.setItem(TOKEN_KEYS.USER_TYPE, userType.toString());
 };
 
 export const getUserName = (): string | null => {
     if (memoryTokenCache.userName) {
         return memoryTokenCache.userName;
     }
-    const userName = sessionStorage.getItem(TOKEN_KEYS.USER_NAME);
+    const userName = localStorage.getItem(TOKEN_KEYS.USER_NAME);
     if (userName) {
         memoryTokenCache.userName = userName;
     }
@@ -119,7 +119,7 @@ export const getUserType = (): number | null => {
     if (memoryTokenCache.userType !== null) {
         return memoryTokenCache.userType;
     }
-    const userType = sessionStorage.getItem(TOKEN_KEYS.USER_TYPE);
+    const userType = localStorage.getItem(TOKEN_KEYS.USER_TYPE);
     if (userType) {
         const parsed = parseInt(userType, 10);
         if (!Number.isNaN(parsed)) {
@@ -135,7 +135,7 @@ export const getAccessToken = (): string | null => {
     if (memoryTokenCache.access) {
         return memoryTokenCache.access;
     }
-    const token = sessionStorage.getItem(TOKEN_KEYS.ACCESS);
+    const token = localStorage.getItem(TOKEN_KEYS.ACCESS);
     if (token) {
         memoryTokenCache.access = token;
     }
@@ -146,7 +146,7 @@ export const getRefreshToken = (): string | null => {
     if (memoryTokenCache.refresh) {
         return memoryTokenCache.refresh;
     }
-    const token = sessionStorage.getItem(TOKEN_KEYS.REFRESH);
+    const token = localStorage.getItem(TOKEN_KEYS.REFRESH);
     if (token) {
         memoryTokenCache.refresh = token;
     }
@@ -155,10 +155,10 @@ export const getRefreshToken = (): string | null => {
 
 // 스토리지 변경 시 메모리 캐시 동기화
 export const syncMemoryToStorage = () => {
-    memoryTokenCache.access = sessionStorage.getItem(TOKEN_KEYS.ACCESS);
-    memoryTokenCache.refresh = sessionStorage.getItem(TOKEN_KEYS.REFRESH);
-    memoryTokenCache.userName = sessionStorage.getItem(TOKEN_KEYS.USER_NAME);
-    const typeStr = sessionStorage.getItem(TOKEN_KEYS.USER_TYPE);
+    memoryTokenCache.access = localStorage.getItem(TOKEN_KEYS.ACCESS);
+    memoryTokenCache.refresh = localStorage.getItem(TOKEN_KEYS.REFRESH);
+    memoryTokenCache.userName = localStorage.getItem(TOKEN_KEYS.USER_NAME);
+    const typeStr = localStorage.getItem(TOKEN_KEYS.USER_TYPE);
     if (typeStr) {
         const parsed = parseInt(typeStr, 10);
         memoryTokenCache.userType = Number.isNaN(parsed) ? null : parsed;
@@ -172,10 +172,10 @@ export const clearTokens = () => {
     memoryTokenCache.refresh = null;
     memoryTokenCache.userName = null;
     memoryTokenCache.userType = null;
-    sessionStorage.removeItem(TOKEN_KEYS.ACCESS);
-    sessionStorage.removeItem(TOKEN_KEYS.REFRESH);
-    sessionStorage.removeItem(TOKEN_KEYS.USER_NAME);
-    sessionStorage.removeItem(TOKEN_KEYS.USER_TYPE);
+    localStorage.removeItem(TOKEN_KEYS.ACCESS);
+    localStorage.removeItem(TOKEN_KEYS.REFRESH);
+    localStorage.removeItem(TOKEN_KEYS.USER_NAME);
+    localStorage.removeItem(TOKEN_KEYS.USER_TYPE);
 };
 
 export const isLoggedIn = (): boolean => {
@@ -206,7 +206,7 @@ const doRefreshToken = async (): Promise<{ success: boolean; newAccessToken?: st
             // 따옴표 제거 (JSON 문자열로 올 경우)
             const cleanToken = newAccessToken.replace(/^"|"$/g, '');
             memoryTokenCache.access = cleanToken;
-            sessionStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
+            localStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
             console.log('Token refreshed successfully');
             return { success: true, newAccessToken: cleanToken };
         } else {
@@ -416,7 +416,7 @@ export const refreshToken = async (): Promise<{ success: boolean; newAccessToken
             const cleanToken = newAccessToken.replace(/^"|"$/g, '');
             // access_token만 갱신
             memoryTokenCache.access = cleanToken;
-            sessionStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
+            localStorage.setItem(TOKEN_KEYS.ACCESS, cleanToken);
             return { success: true, newAccessToken: cleanToken };
         } else {
             clearTokens();
@@ -1026,11 +1026,18 @@ interface ReturnResponse {
 // 사용자: 반납 신청 API 함수
 export const returnItem = async (
     rentalId: string,
-    imageFile: File
+    imageFile: File,
+    location?: { lat: number; lng: number }
 ): Promise<{ success: boolean; data?: ReturnResponse; error?: string }> => {
     try {
         const formData = new FormData();
-        formData.append('image', imageFile); // 서버에서 받을 키 이름 ('image') 
+        formData.append('file', imageFile); // 서버에서 받을 키 이름 ('file')
+
+        // location이 있으면 추가 (API는 degrees * 1,000,000 형식 사용)
+        if (location) {
+            formData.append('location_lat', String(Math.round(location.lat * 1000000)));
+            formData.append('location_lng', String(Math.round(location.lng * 1000000)));
+        }
 
         // authFetch를 사용해서 자동 토큰 갱신
         const response = await authFetch(`/api/rentals/${rentalId}/return`, {
