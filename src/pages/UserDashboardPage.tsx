@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, getClub, getSchedules, type ClubMember, type Schedule } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, type ClubMember, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -146,6 +146,24 @@ export function UserDashboardPage() {
             }
         } else {
             setError(result.error || '가입 신청에 실패했습니다.');
+        }
+    };
+
+    // 동아리 탈퇴 핸들러
+    const handleLeaveClub = async (e: React.MouseEvent, club: ClubMember) => {
+        e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
+
+        const clubName = clubNames[club.club_id] || '이 동아리';
+        if (!confirm(`'${clubName}'에서 탈퇴하시겠습니까?`)) {
+            return;
+        }
+
+        const result = await deleteClubMember(club.id);
+        if (result.success) {
+            // 목록에서 제거
+            setMyClubs(prev => prev.filter(c => c.id !== club.id));
+        } else {
+            alert(result.error || '탈퇴에 실패했습니다.');
         }
     };
 
@@ -432,6 +450,14 @@ export function UserDashboardPage() {
                                             <h3 className="member-name">
                                                 동아리 '{clubNames[club.club_id] || '로딩중...'}'
                                             </h3>
+                                        </div>
+                                        <div className="member-actions">
+                                            <button
+                                                className="leave-club-btn"
+                                                onClick={(e) => handleLeaveClub(e, club)}
+                                            >
+                                                탈퇴
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

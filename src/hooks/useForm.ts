@@ -14,6 +14,7 @@ interface UseFormReturn<T> {
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     handleSubmit: (onSubmit: () => Promise<void>) => (e: React.FormEvent) => Promise<void>;
     resetForm: () => void;
+    setFieldValue: <K extends keyof T>(field: K, value: T[K]) => void;
 }
 
 export function useForm<T extends object>({
@@ -73,6 +74,10 @@ export function useForm<T extends object>({
         setLoading(false);
     }, [initialValues]);
 
+    const setFieldValue = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
+        setValues(prev => ({ ...prev, [field]: value }));
+    }, []);
+
     return {
         values,
         error,
@@ -82,5 +87,6 @@ export function useForm<T extends object>({
         handleChange,
         handleSubmit,
         resetForm,
+        setFieldValue,
     };
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { adminSignup } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +12,8 @@ interface AdminSignupFormValues {
     confirmPassword: string;
     clubName: string;
     clubDescription: string;
+    locationLat: number | null;
+    locationLng: number | null;
 }
 
 const initialValues: AdminSignupFormValues = {
@@ -20,6 +23,8 @@ const initialValues: AdminSignupFormValues = {
     confirmPassword: '',
     clubName: '',
     clubDescription: '',
+    locationLat: null,
+    locationLng: null,
 };
 
 const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
@@ -46,24 +51,72 @@ const validateAdminSignup = (values: AdminSignupFormValues): string | null => {
     if (!values.clubDescription.trim()) {
         return '동아리 설명을 입력해주세요.';
     }
+    if (values.locationLat === null || values.locationLng === null) {
+        return '동아리 위치를 설정해주세요.';
+    }
     return null;
 };
 
 export function AdminSignupPage() {
     const navigate = useNavigate();
     const { refreshAuth } = useAuth();
-    const { values, error, handleChange, handleSubmit, setError } = useForm({
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const { values, error, handleChange, handleSubmit, setError, setFieldValue } = useForm({
         initialValues,
         validate: validateAdminSignup,
     });
 
+    // GPS 위치 가져오기
+    const handleGetLocation = () => {
+        if (!navigator.geolocation) {
+            setError('이 브라우저에서는 GPS를 지원하지 않습니다.');
+            return;
+        }
+
+        setIsGettingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                // API는 degrees * 1,000,000 형식 사용
+                setFieldValue('locationLat', Math.round(lat * 1000000));
+                setFieldValue('locationLng', Math.round(lng * 1000000));
+                setIsGettingLocation(false);
+            },
+            (geoError) => {
+                setIsGettingLocation(false);
+                let errorMessage = '위치를 가져올 수 없습니다.';
+                switch (geoError.code) {
+                    case geoError.PERMISSION_DENIED:
+                        errorMessage = '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
+                        break;
+                    case geoError.POSITION_UNAVAILABLE:
+                        errorMessage = '위치 정보를 사용할 수 없습니다.';
+                        break;
+                    case geoError.TIMEOUT:
+                        errorMessage = '위치 요청 시간이 초과되었습니다.';
+                        break;
+                }
+                setError(errorMessage);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
     const onSubmit = async () => {
+        if (values.locationLat === null || values.locationLng === null) {
+            setError('동아리 위치를 설정해주세요.');
+            return;
+        }
+
         const result = await adminSignup({
             name: values.name,
             email: values.email,
             password: values.password,
             club_name: values.clubName,
-            club_description: values.clubDescription
+            club_description: values.clubDescription,
+            location_lat: values.locationLat,
+            location_lng: values.locationLng,
         });
 
         if (result.success) {
@@ -159,6 +212,35 @@ export function AdminSignupPage() {
                             placeholder="동아리에 대한 간단한 설명을 입력하세요"
                             rows={3}
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label>동아리 위치 (필수)</label>
+                        <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
+                            물품 반납 시 위치 확인에 사용됩니다.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={isGettingLocation}
+                            style={{
+                                padding: '0.9rem 1rem',
+                                border: values.locationLat ? '2px solid #5979BA' : '1px solid var(--glass-border)',
+                                borderRadius: '10px',
+                                background: values.locationLat ? 'rgba(89, 121, 186, 0.1)' : 'white',
+                                cursor: isGettingLocation ? 'not-allowed' : 'pointer',
+                                width: '100%',
+                                fontSize: '1rem',
+                                color: values.locationLat ? '#5979BA' : '#666',
+                                fontWeight: values.locationLat ? '600' : '400',
+                            }}
+                        >
+                            {isGettingLocation
+                                ? '위치 가져오는 중...'
+                                : values.locationLat
+                                    ? `위치 설정됨 (${(values.locationLat / 1000000).toFixed(6)}, ${(values.locationLng! / 1000000).toFixed(6)})`
+                                    : '현재 위치로 설정하기'}
+                        </button>
                     </div>
 
                     {error && <p className="error-message">{error}</p>}

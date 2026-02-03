@@ -30,6 +30,7 @@ export function AdminDashboardPage() {
     const [newAssetDescription, setNewAssetDescription] = useState('');
     const [newAssetQuantity, setNewAssetQuantity] = useState(1);
     const [newAssetLocation, setNewAssetLocation] = useState('');
+    const [newAssetMaxRentalDays, setNewAssetMaxRentalDays] = useState<number | null>(null);
 
     const [isAddingAsset, setIsAddingAsset] = useState(false);
     const [addAssetError, setAddAssetError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export function AdminDashboardPage() {
         description: string;
         quantity: number;
         location: string;
+        max_rental_days: number | null;
     } | null>(null);
     const [isUpdatingAsset, setIsUpdatingAsset] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -227,6 +229,7 @@ export function AdminDashboardPage() {
         setNewAssetDescription('');
         setNewAssetQuantity(1);
         setNewAssetLocation('');
+        setNewAssetMaxRentalDays(null);
 
         setAddAssetError(null);
         setShowAddAssetModal(true);
@@ -258,6 +261,7 @@ export function AdminDashboardPage() {
             club_id: myClubId,
             quantity: qty,
             location: newAssetLocation.trim(),
+            max_rental_days: newAssetMaxRentalDays || undefined,
         });
 
         setIsAddingAsset(false);
@@ -307,10 +311,10 @@ export function AdminDashboardPage() {
         '물품명': 'name',
         '설명': 'description',
         '수량': 'quantity',
-        '위치': 'location',        
+        '위치': 'location',
         '사용가능수량': 'available_quantity',
         '전체수량': 'total_quantity',
-        '등록일': 'created_at' 
+        '등록일': 'created_at'
     };
 
     interface MappedAssetRow {
@@ -328,73 +332,73 @@ export function AdminDashboardPage() {
 
     // 3. 실제 업로드 실행 핸들러 (모달 내 '업로드' 버튼 클릭 시)
     const handleExcelUploadSubmit = async () => {
-    if (!selectedExcelFile || myClubId === null) {
-        alert('파일을 선택해주세요.');
-        return;
-    }
-
-    setIsUploading(true);
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = e.target?.result;
-            const workbook = XLSX.read(data, { type: 'binary' });
-            
-            // 2. 데이터 읽기 및 헤더 변환 (한글 -> 영어)
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet);
-            
-            const translatedData = rawData.map((row: RawExcelRow) => {
-                const newRow: MappedAssetRow = {};
-                Object.keys(row).forEach(koKey => {
-                    const enKey = HEADER_MAP[koKey];
-                    if (enKey) {
-                        (newRow[enKey] as unknown) = row[koKey];
-                    }
-                });
-                return newRow;
-            });
-
-            // 3. 수정된 데이터로 새로운 엑셀 파일(워크북) 생성
-            const newWorksheet = XLSX.utils.json_to_sheet(translatedData);
-            const newWorkbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Sheet1');
-
-            // 4. 워크북을 바이너리(ArrayBuffer)로 변환
-            const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-            const finalFileBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-            // 5. FormData에 담아서 전송
-            const formData = new FormData();
-            // 백엔드에서 받는 필드명('file')에 맞춰 Blob을 파일 객체처럼 추가
-            formData.append('file', finalFileBlob, 'processed_assets.xlsx');
-
-            const result = await uploadExcelAssets(formData);
-
-            if (result.success) {
-                alert(`${result.data?.imported || 0}개의 물품이 성공적으로 업로드되었습니다.`);
-                setShowExcelModal(false);
-                fetchAssets(myClubId);
-            } else {
-                alert(result.error || '업로드 실패');
-            }
-        } catch (error) {
-            console.error(error);
-            alert('파일 처리 중 오류가 발생했습니다.');
-        } finally {
-            setIsUploading(false);
+        if (!selectedExcelFile || myClubId === null) {
+            alert('파일을 선택해주세요.');
+            return;
         }
+
+        setIsUploading(true);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+
+                // 2. 데이터 읽기 및 헤더 변환 (한글 -> 영어)
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet);
+
+                const translatedData = rawData.map((row: RawExcelRow) => {
+                    const newRow: MappedAssetRow = {};
+                    Object.keys(row).forEach(koKey => {
+                        const enKey = HEADER_MAP[koKey];
+                        if (enKey) {
+                            (newRow[enKey] as unknown) = row[koKey];
+                        }
+                    });
+                    return newRow;
+                });
+
+                // 3. 수정된 데이터로 새로운 엑셀 파일(워크북) 생성
+                const newWorksheet = XLSX.utils.json_to_sheet(translatedData);
+                const newWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Sheet1');
+
+                // 4. 워크북을 바이너리(ArrayBuffer)로 변환
+                const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+                const finalFileBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                // 5. FormData에 담아서 전송
+                const formData = new FormData();
+                // 백엔드에서 받는 필드명('file')에 맞춰 Blob을 파일 객체처럼 추가
+                formData.append('file', finalFileBlob, 'processed_assets.xlsx');
+
+                const result = await uploadExcelAssets(formData);
+
+                if (result.success) {
+                    alert(`${result.data?.imported || 0}개의 물품이 성공적으로 업로드되었습니다.`);
+                    setShowExcelModal(false);
+                    fetchAssets(myClubId);
+                } else {
+                    alert(result.error || '업로드 실패');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('파일 처리 중 오류가 발생했습니다.');
+            } finally {
+                setIsUploading(false);
+            }
+        };
+
+        reader.readAsBinaryString(selectedExcelFile);
     };
 
-    reader.readAsBinaryString(selectedExcelFile);
-};
-
     const handleExportAssets = () => {
-    if (assets.length === 0) {
-        alert('내보낼 데이터가 없습니다.');
-        return;
-    }
+        if (assets.length === 0) {
+            alert('내보낼 데이터가 없습니다.');
+            return;
+        }
 
         // 1. 데이터 가공: 사용자가 보기 좋은 한글 헤더로 매핑
         // Asset 타입의 필드들을 엑셀 열에 맞게 조정합니다.
@@ -436,6 +440,7 @@ export function AdminDashboardPage() {
                 description: asset.description,
                 quantity: asset.total_quantity,
                 location: asset.location,
+                max_rental_days: asset.max_rental_days || null,
             });
 
             // 통계 불러오기
@@ -484,6 +489,7 @@ export function AdminDashboardPage() {
             description: editingAsset.description.trim(),
             quantity: editingAsset.quantity,
             location: editingAsset.location.trim(),
+            max_rental_days: editingAsset.max_rental_days || undefined,
         });
 
         setIsUpdatingAsset(false);
@@ -762,6 +768,21 @@ export function AdminDashboardPage() {
                                             placeholder="예: 동아리방 선반"
                                         />
                                     </div>
+                                    <div className="form-group">
+                                        <label htmlFor="asset-max-rental-days">최대 대여 일수</label>
+                                        <input
+                                            id="asset-max-rental-days"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={newAssetMaxRentalDays ?? ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setNewAssetMaxRentalDays(val === '' ? null : parseInt(val));
+                                            }}
+                                            placeholder="미설정 시 제한 없음"
+                                        />
+                                    </div>
                                     {addAssetError && <p className="error-message">{addAssetError}</p>}
                                     <div className="form-actions">
                                         <button
@@ -841,15 +862,15 @@ export function AdminDashboardPage() {
                                             />
                                         </div>
                                         <div style={{ marginBottom: '20px', textAlign: 'right' }}>
-                                        <button 
-                                            type="button"
-                                            className="member-approve-btn" 
-                                            onClick={handleExportAssets}
-                                            style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
-                                        >
-                                            📤 현재 자산 목록 내보내기 (.xlsx)
-                                        </button>
-                                    </div>
+                                            <button
+                                                type="button"
+                                                className="member-approve-btn"
+                                                onClick={handleExportAssets}
+                                                style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+                                            >
+                                                📤 현재 자산 목록 내보내기 (.xlsx)
+                                            </button>
+                                        </div>
 
                                         {selectedExcelFile && (
                                             <div style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>
@@ -976,6 +997,7 @@ export function AdminDashboardPage() {
                                                                 description: asset.description,
                                                                 quantity: asset.total_quantity,
                                                                 location: asset.location,
+                                                                max_rental_days: asset.max_rental_days || null,
                                                             });
                                                             setShowEditModal(true);
                                                         }}
@@ -1043,6 +1065,21 @@ export function AdminDashboardPage() {
                                             value={editingAsset.location}
                                             onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
                                             placeholder="예: 동아리방 선반"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="edit-max-rental-days">최대 대여 일수</label>
+                                        <input
+                                            id="edit-max-rental-days"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={editingAsset.max_rental_days ?? ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setEditingAsset({ ...editingAsset, max_rental_days: val === '' ? null : parseInt(val) });
+                                            }}
+                                            placeholder="미설정 시 제한 없음"
                                         />
                                     </div>
 
