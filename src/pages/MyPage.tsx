@@ -292,6 +292,7 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
                             placeholder="새 이름 입력"
+                            autoComplete="name"
                         />
                     </div>
 
@@ -325,6 +326,7 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             placeholder="현재 비밀번호"
+                            autoComplete="current-password"
                         />
                     </div>
 
@@ -336,6 +338,7 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             placeholder="새 비밀번호 (6자 이상)"
+                            autoComplete="new-password"
                             style={{
                                 borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
                                 borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
@@ -351,6 +354,7 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="새 비밀번호 확인"
+                            autoComplete="new-password"
                             style={{
                                 borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
                                 borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
@@ -517,6 +521,13 @@ export function MyPage() {
     const [deleteClubConfirmName, setDeleteClubConfirmName] = useState('');
     const [isDeletingClub, setIsDeletingClub] = useState(false);
     const [deleteClubError, setDeleteClubError] = useState<string | null>(null);
+
+    // 관리자 비밀번호 변경 상태
+    const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
+    const [adminNewPassword, setAdminNewPassword] = useState('');
+    const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+    const [isAdminChangingPassword, setIsAdminChangingPassword] = useState(false);
+    const [adminPasswordResult, setAdminPasswordResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // 클럽 정보 상태
     // const [clubId, setClubId] = useState<number | null>(null);
@@ -1064,6 +1075,110 @@ export function MyPage() {
                                 disabled={isSending}
                             >
                                 {isSending ? '전송 중...' : '이메일 전송'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* 관리자 전용: 비밀번호 변경 */}
+                {isAdmin && (
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
+                        <h2>🔒 비밀번호 변경</h2>
+                        <p className="section-description">현재 비밀번호와 새 비밀번호를 입력해주세요.</p>
+
+                        <div className="email-form">
+                            <div className="form-group">
+                                <label htmlFor="admin-current-password">현재 비밀번호</label>
+                                <input
+                                    id="admin-current-password"
+                                    type="password"
+                                    value={adminCurrentPassword}
+                                    onChange={(e) => setAdminCurrentPassword(e.target.value)}
+                                    placeholder="현재 비밀번호"
+                                    autoComplete="current-password"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="admin-new-password">새 비밀번호</label>
+                                <input
+                                    id="admin-new-password"
+                                    type="password"
+                                    value={adminNewPassword}
+                                    onChange={(e) => setAdminNewPassword(e.target.value)}
+                                    placeholder="새 비밀번호 (6자 이상)"
+                                    autoComplete="new-password"
+                                    style={{
+                                        borderColor: (adminNewPassword && adminConfirmPassword && adminNewPassword === adminConfirmPassword) ? '#10b981'
+                                            : (adminNewPassword && adminConfirmPassword && adminNewPassword !== adminConfirmPassword) ? '#ef4444'
+                                                : undefined,
+                                        borderWidth: (adminNewPassword && adminConfirmPassword) ? '2px' : undefined
+                                    }}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="admin-confirm-password">새 비밀번호 확인</label>
+                                <input
+                                    id="admin-confirm-password"
+                                    type="password"
+                                    value={adminConfirmPassword}
+                                    onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                                    placeholder="새 비밀번호 확인"
+                                    autoComplete="new-password"
+                                    style={{
+                                        borderColor: (adminNewPassword && adminConfirmPassword && adminNewPassword === adminConfirmPassword) ? '#10b981'
+                                            : (adminNewPassword && adminConfirmPassword && adminNewPassword !== adminConfirmPassword) ? '#ef4444'
+                                                : undefined,
+                                        borderWidth: (adminNewPassword && adminConfirmPassword) ? '2px' : undefined
+                                    }}
+                                />
+                            </div>
+
+                            {adminPasswordResult && (
+                                <div className={`send-result ${adminPasswordResult.success ? 'success' : 'error'}`}>
+                                    {adminPasswordResult.message}
+                                </div>
+                            )}
+
+                            <button
+                                className="send-email-btn"
+                                onClick={async () => {
+                                    if (!adminCurrentPassword) {
+                                        setAdminPasswordResult({ success: false, message: '현재 비밀번호를 입력해주세요.' });
+                                        return;
+                                    }
+                                    if (!adminNewPassword) {
+                                        setAdminPasswordResult({ success: false, message: '새 비밀번호를 입력해주세요.' });
+                                        return;
+                                    }
+                                    if (adminNewPassword !== adminConfirmPassword) {
+                                        setAdminPasswordResult({ success: false, message: '새 비밀번호가 일치하지 않습니다.' });
+                                        return;
+                                    }
+                                    if (adminNewPassword.length < 6) {
+                                        setAdminPasswordResult({ success: false, message: '비밀번호는 6자 이상이어야 합니다.' });
+                                        return;
+                                    }
+                                    if (!confirm('비밀번호를 변경하시겠습니까?')) {
+                                        return;
+                                    }
+                                    setIsAdminChangingPassword(true);
+                                    setAdminPasswordResult(null);
+                                    const result = await changePassword(adminCurrentPassword, adminNewPassword);
+                                    if (result.success) {
+                                        setAdminCurrentPassword('');
+                                        setAdminNewPassword('');
+                                        setAdminConfirmPassword('');
+                                        setAdminPasswordResult({ success: true, message: '비밀번호가 변경되었습니다.' });
+                                    } else {
+                                        setAdminPasswordResult({ success: false, message: result.error || '비밀번호 변경에 실패했습니다.' });
+                                    }
+                                    setIsAdminChangingPassword(false);
+                                }}
+                                disabled={isAdminChangingPassword || !adminCurrentPassword || !adminNewPassword || !adminConfirmPassword}
+                            >
+                                {isAdminChangingPassword ? '변경 중...' : '비밀번호 변경'}
                             </button>
                         </div>
                     </div>
