@@ -95,6 +95,12 @@ export function SignupPage() {
                             required
                             minLength={8}
                             placeholder="8자 이상 입력하세요"
+                            style={{
+                                borderColor: (values.password && values.confirmPassword && values.password === values.confirmPassword) ? '#10b981'
+                                    : (values.password && values.confirmPassword && values.password !== values.confirmPassword) ? '#ef4444'
+                                        : undefined,
+                                borderWidth: (values.password && values.confirmPassword) ? '2px' : undefined
+                            }}
                         />
                     </div>
 
@@ -108,6 +114,12 @@ export function SignupPage() {
                             onChange={handleChange}
                             required
                             placeholder="다시 한번 입력하세요"
+                            style={{
+                                borderColor: (values.password && values.confirmPassword && values.password === values.confirmPassword) ? '#10b981'
+                                    : (values.password && values.confirmPassword && values.password !== values.confirmPassword) ? '#ef4444'
+                                        : undefined,
+                                borderWidth: (values.password && values.confirmPassword) ? '2px' : undefined
+                            }}
                         />
                     </div>
 

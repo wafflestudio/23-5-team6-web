@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, deleteClub, clearTokens, type Schedule, type ClubMember, type Asset } from '@/api/client';
+import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, deleteClub, clearTokens, updateUserName, changePassword, withdrawAccount, type Schedule, type ClubMember, type Asset } from '@/api/client';
 import { buildGoogleOAuthURL } from '@/utils/pkce';
 import { KakaoMapPicker } from '@/components/KakaoMapPicker';
 import '@/styles/App.css';
@@ -156,6 +156,354 @@ function GoogleLinkSection() {
                 )}
             </div>
         </div>
+    );
+}
+
+// 일반 사용자 계정 관리 섹션
+function UserAccountSection({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+    // 사용자 이메일 상태
+    const [userEmail, setUserEmail] = useState<string>('');
+
+    // 이름 변경 상태
+    const [newName, setNewName] = useState('');
+    const [isUpdatingName, setIsUpdatingName] = useState(false);
+    const [nameUpdateResult, setNameUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // 비밀번호 변경 상태
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordChangeResult, setPasswordChangeResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // 회원 탈퇴 상태
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+    const [withdrawConfirmText, setWithdrawConfirmText] = useState('');
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
+
+    // 사용자 이메일 가져오기 (club-members API 사용)
+    useEffect(() => {
+        const fetchUserEmail = async () => {
+            const result = await getClubMembers();
+            if (result.success && result.data && result.data.items && result.data.items.length > 0) {
+                // 첫 번째 멤버의 이메일 사용 (자신의 정보)
+                setUserEmail(result.data.items[0].email);
+            }
+        };
+        fetchUserEmail();
+    }, []);
+
+    // 비밀번호 일치 여부 확인
+    const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+    const passwordsNotMatch = newPassword && confirmPassword && newPassword !== confirmPassword;
+
+    // 이름 변경 핸들러
+    const handleUpdateName = async () => {
+        if (!newName.trim()) {
+            setNameUpdateResult({ success: false, message: '새 이름을 입력해주세요.' });
+            return;
+        }
+        // 확인 다이얼로그
+        if (!confirm(`이름을 "${newName.trim()}"(으)로 변경하시겠습니까?`)) {
+            return;
+        }
+        setIsUpdatingName(true);
+        setNameUpdateResult(null);
+        const result = await updateUserName(newName.trim());
+        if (result.success) {
+            setNewName('');
+            setNameUpdateResult({ success: true, message: '이름이 변경되었습니다.' });
+            // 페이지 새로고침으로 헤더 업데이트
+            window.location.reload();
+        } else {
+            setNameUpdateResult({ success: false, message: result.error || '이름 변경에 실패했습니다.' });
+        }
+        setIsUpdatingName(false);
+    };
+
+    // 비밀번호 변경 핸들러
+    const handleChangePassword = async () => {
+        if (!currentPassword) {
+            setPasswordChangeResult({ success: false, message: '현재 비밀번호를 입력해주세요.' });
+            return;
+        }
+        if (!newPassword) {
+            setPasswordChangeResult({ success: false, message: '새 비밀번호를 입력해주세요.' });
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordChangeResult({ success: false, message: '새 비밀번호가 일치하지 않습니다.' });
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordChangeResult({ success: false, message: '비밀번호는 6자 이상이어야 합니다.' });
+            return;
+        }
+        // 확인 다이얼로그
+        if (!confirm('비밀번호를 변경하시겠습니까?')) {
+            return;
+        }
+        setIsChangingPassword(true);
+        setPasswordChangeResult(null);
+        const result = await changePassword(currentPassword, newPassword);
+        if (result.success) {
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setPasswordChangeResult({ success: true, message: '비밀번호가 변경되었습니다.' });
+        } else {
+            setPasswordChangeResult({ success: false, message: result.error || '비밀번호 변경에 실패했습니다.' });
+        }
+        setIsChangingPassword(false);
+    };
+
+    // 회원 탈퇴 핸들러
+    const handleWithdraw = async () => {
+        if (!userEmail || withdrawConfirmText !== userEmail) return;
+        setIsWithdrawing(true);
+        setWithdrawError(null);
+        const result = await withdrawAccount();
+        if (result.success) {
+            navigate('/');
+        } else {
+            setWithdrawError(result.error || '회원 탈퇴에 실패했습니다.');
+        }
+        setIsWithdrawing(false);
+    };
+
+    return (
+        <>
+            {/* Google 연동 섹션 */}
+            <GoogleLinkSection />
+
+            {/* 이름 변경 섹션 */}
+            <div className="email-test-section" style={{ marginTop: '1.5rem' }}>
+                <h2>✏️ 이름 변경</h2>
+                <p className="section-description">새로운 이름을 입력해주세요.</p>
+
+                <div className="email-form">
+                    <div className="form-group">
+                        <label htmlFor="new-name">새 이름</label>
+                        <input
+                            id="new-name"
+                            type="text"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            placeholder="새 이름 입력"
+                        />
+                    </div>
+
+                    {nameUpdateResult && (
+                        <div className={`send-result ${nameUpdateResult.success ? 'success' : 'error'}`}>
+                            {nameUpdateResult.message}
+                        </div>
+                    )}
+
+                    <button
+                        className="send-email-btn"
+                        onClick={handleUpdateName}
+                        disabled={isUpdatingName || !newName.trim()}
+                    >
+                        {isUpdatingName ? '변경 중...' : '이름 변경'}
+                    </button>
+                </div>
+            </div>
+
+            {/* 비밀번호 변경 섹션 */}
+            <div className="email-test-section" style={{ marginTop: '1.5rem' }}>
+                <h2>🔒 비밀번호 변경</h2>
+                <p className="section-description">현재 비밀번호와 새 비밀번호를 입력해주세요.</p>
+
+                <div className="email-form">
+                    <div className="form-group">
+                        <label htmlFor="current-password">현재 비밀번호</label>
+                        <input
+                            id="current-password"
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="현재 비밀번호"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="new-password">새 비밀번호</label>
+                        <input
+                            id="new-password"
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="새 비밀번호 (6자 이상)"
+                            style={{
+                                borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
+                                borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
+                            }}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="confirm-password">새 비밀번호 확인</label>
+                        <input
+                            id="confirm-password"
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="새 비밀번호 확인"
+                            style={{
+                                borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
+                                borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
+                            }}
+                        />
+                    </div>
+
+                    {passwordChangeResult && (
+                        <div className={`send-result ${passwordChangeResult.success ? 'success' : 'error'}`}>
+                            {passwordChangeResult.message}
+                        </div>
+                    )}
+
+                    <button
+                        className="send-email-btn"
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                    >
+                        {isChangingPassword ? '변경 중...' : '비밀번호 변경'}
+                    </button>
+                </div>
+            </div>
+
+            {/* 회원 탈퇴 섹션 */}
+            <div className="email-test-section" style={{ marginTop: '1.5rem', borderColor: '#ef4444', background: 'rgba(239, 68, 68, 0.05)' }}>
+                <h2 style={{ color: '#dc2626' }}>⚠️ 회원 탈퇴</h2>
+                <p className="section-description" style={{ color: '#f87171', fontWeight: 500 }}>
+                    회원 탈퇴 시 모든 정보가 삭제되며 복구할 수 없습니다.
+                </p>
+
+                <button
+                    className="delete-club-btn"
+                    onClick={() => {
+                        setWithdrawConfirmText('');
+                        setWithdrawError(null);
+                        setShowWithdrawModal(true);
+                    }}
+                    style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        background: '#dc2626',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}
+                >
+                    회원 탈퇴
+                </button>
+
+                {/* 회원 탈퇴 확인 모달 */}
+                {showWithdrawModal && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1000
+                        }}
+                        onClick={() => !isWithdrawing && setShowWithdrawModal(false)}
+                    >
+                        <div
+                            style={{
+                                background: 'var(--card-bg, #1f2937)',
+                                borderRadius: '16px',
+                                padding: '1.5rem',
+                                maxWidth: '400px',
+                                width: '90%',
+                                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 style={{ margin: '0 0 1rem', color: '#ef4444' }}>⚠️ 회원 탈퇴 확인</h3>
+                            <div style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                borderRadius: '8px',
+                                padding: '1rem',
+                                marginBottom: '1rem'
+                            }}>
+                                <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#fecaca' }}>
+                                    <strong style={{ color: '#f87171' }}>주의:</strong> 이 작업은 되돌릴 수 없습니다.
+                                </p>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#fecaca' }}>
+                                    탈퇴를 확인하려면 <strong style={{ color: '#f87171' }}>"{userEmail}"</strong>를 정확히 입력해주세요.
+                                </p>
+                            </div>
+                            <input
+                                type="email"
+                                value={withdrawConfirmText}
+                                onChange={(e) => setWithdrawConfirmText(e.target.value)}
+                                placeholder={userEmail || '이메일 주소'}
+                                disabled={isWithdrawing}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--glass-border)',
+                                    background: 'var(--glass-bg)',
+                                    color: 'var(--text-color)',
+                                    marginBottom: '0.75rem',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                            {withdrawError && (
+                                <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: '0 0 0.75rem' }}>{withdrawError}</p>
+                            )}
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    onClick={() => setShowWithdrawModal(false)}
+                                    disabled={isWithdrawing}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        borderRadius: '8px',
+                                        border: '2px solid #6b7280',
+                                        background: 'rgba(107, 114, 128, 0.1)',
+                                        color: '#e5e7eb',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    onClick={handleWithdraw}
+                                    disabled={isWithdrawing || !userEmail || withdrawConfirmText !== userEmail}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: (userEmail && withdrawConfirmText === userEmail) ? '#ef4444' : 'rgba(107, 114, 128, 0.2)',
+                                        color: (userEmail && withdrawConfirmText === userEmail) ? 'white' : '#9ca3af',
+                                        fontWeight: 600,
+                                        cursor: (userEmail && withdrawConfirmText === userEmail) ? 'pointer' : 'not-allowed',
+                                        opacity: isWithdrawing ? 0.7 : 1
+                                    }}
+                                >
+                                    {isWithdrawing ? '탈퇴 처리 중...' : '회원 탈퇴'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
 
@@ -868,8 +1216,9 @@ export function MyPage() {
                     </div>
                 )}
 
+                {/* 일반 사용자 전용: 계정 관리 섹션 */}
                 {!isAdmin && (
-                    <GoogleLinkSection />
+                    <UserAccountSection navigate={navigate} />
                 )}
             </main>
         </div>
