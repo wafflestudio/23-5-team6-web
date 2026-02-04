@@ -1478,3 +1478,120 @@ export const googleLogin = async (
         return { success: false, error: 'Network error occurred' };
     }
 };
+
+// 내 사용자 정보 조회 (GET /api/users/me)
+export const getMyUserInfo = async (): Promise<{ success: boolean; data?: { id: string; name: string; email: string }; error?: string }> => {
+    try {
+        const response = await authFetch('/api/users/me', {
+            method: 'GET',
+        });
+
+        console.log('getMyUserInfo response status:', response.status);
+
+        if (response.status === 200) {
+            const result = await response.json();
+            console.log('getMyUserInfo result:', result);
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else {
+            const errorText = await response.text().catch(() => '');
+            console.log('getMyUserInfo error response:', response.status, errorText);
+            return { success: false, error: '사용자 정보를 불러올 수 없습니다.' };
+        }
+    } catch (error) {
+        console.error('Get my user info error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 사용자 이름 변경 (PATCH /api/users/me)
+export const updateUserName = async (name: string): Promise<{ success: boolean; data?: { id: string; name: string; email: string }; error?: string }> => {
+    try {
+        const response = await authFetch('/api/users/me', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        if (response.status === 200) {
+            const result = await response.json();
+            // 로컬 저장소의 사용자 이름도 업데이트
+            saveUserInfo(result.name, getUserType() ?? 0);
+            showNotification('이름이 변경되었습니다.');
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '이름 변경에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Update user name error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 비밀번호 변경 (PATCH /api/auth/password)
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch('/api/auth/password', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword,
+            }),
+        });
+
+        if (response.status === 204) {
+            showNotification('비밀번호가 변경되었습니다.');
+            return { success: true };
+        } else if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '비밀번호 변경에 실패했습니다.' };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '비밀번호 변경에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Change password error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 회원 탈퇴 (DELETE /api/auth/withdraw)
+export const withdrawAccount = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await authFetch('/api/auth/withdraw', {
+            method: 'DELETE',
+        });
+
+        if (response.status === 204) {
+            clearTokens();
+            showNotification('회원 탈퇴가 완료되었습니다.');
+            return { success: true };
+        } else if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '회원 탈퇴에 실패했습니다.' };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '회원 탈퇴에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Withdraw account error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
