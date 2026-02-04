@@ -160,7 +160,7 @@ function GoogleLinkSection() {
 }
 
 // 일반 사용자 계정 관리 섹션
-function UserAccountSection({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof useNavigate>; logout: () => Promise<void> }) {
     // 사용자 이메일 상태
     const [userEmail, setUserEmail] = useState<string>('');
 
@@ -265,6 +265,7 @@ function UserAccountSection({ navigate }: { navigate: ReturnType<typeof useNavig
         setWithdrawError(null);
         const result = await withdrawAccount();
         if (result.success) {
+            await logout(); // AuthContext 상태 동기화
             navigate('/');
         } else {
             setWithdrawError(result.error || '회원 탈퇴에 실패했습니다.');
@@ -509,7 +510,7 @@ function UserAccountSection({ navigate }: { navigate: ReturnType<typeof useNavig
 
 export function MyPage() {
     const navigate = useNavigate();
-    const { userName, isAdmin } = useAuth();
+    const { userName, isAdmin, logout } = useAuth();
 
     // 동아리 삭제 상태
     const [showDeleteClubModal, setShowDeleteClubModal] = useState(false);
@@ -1218,7 +1219,7 @@ export function MyPage() {
 
                 {/* 일반 사용자 전용: 계정 관리 섹션 */}
                 {!isAdmin && (
-                    <UserAccountSection navigate={navigate} />
+                    <UserAccountSection navigate={navigate} logout={logout} />
                 )}
             </main>
         </div>

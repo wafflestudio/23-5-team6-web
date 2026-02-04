@@ -1486,17 +1486,12 @@ export const getMyUserInfo = async (): Promise<{ success: boolean; data?: { id: 
             method: 'GET',
         });
 
-        console.log('getMyUserInfo response status:', response.status);
-
         if (response.status === 200) {
             const result = await response.json();
-            console.log('getMyUserInfo result:', result);
             return { success: true, data: result };
         } else if (response.status === 401) {
             return { success: false, error: '인증이 만료되었습니다.' };
         } else {
-            const errorText = await response.text().catch(() => '');
-            console.log('getMyUserInfo error response:', response.status, errorText);
             return { success: false, error: '사용자 정보를 불러올 수 없습니다.' };
         }
     } catch (error) {
