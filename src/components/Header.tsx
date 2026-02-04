@@ -9,7 +9,7 @@ export function Header() {
 
     const handleLogout = async () => {
         await logout();
-        navigate('/login');
+        navigate('/login', { replace: true });
     };
 
     const isActive = (path: string) => location.pathname === path;

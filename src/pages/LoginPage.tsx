@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login } from '@/api/client';
+import { login, getAccessToken } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/hooks/useForm';
 import { buildGoogleOAuthURL } from '@/utils/pkce';
@@ -19,12 +19,41 @@ const initialValues: LoginFormValues = {
 export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { refreshAuth } = useAuth();
+    const { refreshAuth, isLoggedIn, isAdmin } = useAuth();
     const { values, error, isLoading, handleChange, handleSubmit, setError } = useForm({
         initialValues,
     });
     const successMessage = (location.state as { message?: string })?.message;
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+    // 이미 로그인된 상태면 리다이렉트 (실제 토큰 존재 여부 확인)
+    const hasCheckedAuth = useRef(false);
+    useEffect(() => {
+        // 컴포넌트 마운트 시 한 번만 체크 (로그아웃 직후 state 타이밍 이슈 방지)
+        if (hasCheckedAuth.current) return;
+        hasCheckedAuth.current = true;
+
+        // 실제 토큰이 존재하는지 확인
+        const token = getAccessToken();
+        if (token && isLoggedIn) {
+            if (isAdmin) {
+                navigate('/admin/dashboard', { replace: true });
+            } else {
+                navigate('/', { replace: true });
+            }
+        }
+    }, [isLoggedIn, isAdmin, navigate]);
+
+    // 브라우저 뒤로가기/앞으로가기 시 로딩 상태 초기화 (bfcache 대응)
+    useEffect(() => {
+        const handlePageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) {
+                setIsGoogleLoading(false);
+            }
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
 
     const onSubmit = async () => {
         const result = await login({
@@ -35,10 +64,11 @@ export function LoginPage() {
         if (result.success) {
             refreshAuth();
             // 관리자면 대시보드로, 일반 유저면 메인으로
+            // replace: true로 히스토리에서 로그인 페이지 대체
             if (result.data?.user_type === 1) {
-                navigate('/admin/dashboard');
+                navigate('/admin/dashboard', { replace: true });
             } else {
-                navigate('/', { state: { message: '로그인 성공!' } });
+                navigate('/', { replace: true, state: { message: '로그인 성공!' } });
             }
         } else {
             setError(result.error || '로그인에 실패했습니다.');

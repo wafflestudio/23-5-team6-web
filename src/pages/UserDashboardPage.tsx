@@ -30,7 +30,7 @@ export function UserDashboardPage() {
     // 대여 항목 상태
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [schedulesLoading, setSchedulesLoading] = useState(false);
-    const [statusFilter, setStatusFilter] = useState<'in_use' | 'returned' | ''>('');
+    const [statusFilter, setStatusFilter] = useState<'inuse' | 'returned' | ''>('');
 
     // 동아리 목록 가져오기
     useEffect(() => {
@@ -359,7 +359,7 @@ export function UserDashboardPage() {
                         <div className="filter-container" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as '' | 'in_use' | 'returned')}
+                                onChange={(e) => setStatusFilter(e.target.value as '' | 'inuse' | 'returned')}
                                 style={{
                                     padding: '0.5rem',
                                     borderRadius: '0',
@@ -370,8 +370,8 @@ export function UserDashboardPage() {
                                 }}
                             >
                                 <option value="">전체 내역</option>
-                                <option value="in_use">사용중</option>
-                                <option value="returned">사용가능</option>
+                                <option value="inuse">대여중</option>
+                                <option value="returned">반납완료</option>
                             </select>
                         </div>
 
@@ -387,7 +387,7 @@ export function UserDashboardPage() {
                                     <div key={schedule.id} className="asset-card">
                                         <div className="asset-image">
                                             <div className="asset-image-placeholder">
-                                                {schedule.status === 'in_use' ? '📱' : '✅'}
+                                                {schedule.status === 'inuse' || schedule.status === 'overdue' ? '📱' : '✅'}
                                             </div>
                                         </div>
                                         <div className="asset-info">
@@ -399,7 +399,7 @@ export function UserDashboardPage() {
                                                 대여일: {formatDate(schedule.start_date)}
                                             </p>
                                             <p className="asset-detail">
-                                                상태: {schedule.status === 'in_use' ? '사용중' : '사용가능'}
+                                                상태: {schedule.status === 'inuse' ? '대여중' : schedule.status === 'overdue' ? '연체' : '반납완료'}
                                             </p>
                                             {schedule.end_date && (
                                                 <p className="asset-detail">
@@ -407,7 +407,7 @@ export function UserDashboardPage() {
                                                 </p>
                                             )}
                                         </div>
-                                        {schedule.status === 'in_use' && (
+                                        {(schedule.status === 'inuse' || schedule.status === 'overdue') && (
                                             <button
                                                 className="primary-btn"
                                                 onClick={() => handleReturnItem(schedule)}
