@@ -26,6 +26,8 @@ function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClic
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
+        const currentElement = cardRef.current; 
+        if (!currentElement) return;
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -729,6 +731,12 @@ export function AdminDashboardPage() {
                 const picturesResult = await getAssetPictures(expandedAssetId);
                 if (picturesResult.success && picturesResult.data) {
                     setAssetPictures(picturesResult.data);
+
+                    const newMain = picturesResult.data.find(p => p.is_main) || picturesResult.data[0];
+                setAssetMainPictures(prev => ({ 
+                ...prev, 
+                [expandedAssetId]: newMain ? newMain.id : null 
+            }));
                 }
             } else {
                 setError(result.error || '사진 업로드에 실패했습니다.');
@@ -756,6 +764,11 @@ export function AdminDashboardPage() {
             const picturesResult = await getAssetPictures(expandedAssetId);
             if (picturesResult.success && picturesResult.data) {
                 setAssetPictures(picturesResult.data);
+
+                setAssetMainPictures(prev => ({ 
+                ...prev, 
+                [expandedAssetId]: pictureId 
+            }));
             }
         } else {
             setError(result.error || '대표 사진 설정에 실패했습니다.');
@@ -770,6 +783,14 @@ export function AdminDashboardPage() {
         const result = await deleteAssetPicture(expandedAssetId, pictureId);
         if (result.success) {
             setAssetPictures(prev => prev.filter(p => p.id !== pictureId));
+
+            setAssetMainPictures(prev => {
+            if (prev[expandedAssetId] === pictureId) {
+                return { ...prev, [expandedAssetId]: null };
+        } else {
+            return prev;
+        }
+    });
         } else {
             setError(result.error || '사진 삭제에 실패했습니다.');
         }
@@ -1333,8 +1354,8 @@ export function AdminDashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="schedule-status">
-                                                <span className={`status-tag ${schedule.status.toLowerCase() === 'in_use' ? 'pending' : schedule.status.toLowerCase() === 'overdue' ? 'overdue' : 'approved'}`}>
-                                                    {schedule.status.toLowerCase() === 'in_use' ? '대여중' : schedule.status.toLowerCase() === 'overdue' ? '연체' : '반납완료'}
+                                                <span className={`status-tag ${schedule.status === 'in_use' ? 'pending' : schedule.status === 'overdue' ? 'overdue' : 'approved'}`}>
+                                                    {schedule.status === 'in_use' ? '대여중' : schedule.status === 'overdue' ? '연체' : '반납완료'}
                                                 </span>
                                             </div>
                                         </div>
