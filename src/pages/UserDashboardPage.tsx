@@ -30,7 +30,7 @@ export function UserDashboardPage() {
     // 대여 항목 상태
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [schedulesLoading, setSchedulesLoading] = useState(false);
-    const [statusFilter, setStatusFilter] = useState<'inuse' | 'returned' | 'overdue' | ''>('');
+    const [statusFilter, setStatusFilter] = useState<'in_use' | 'returned' | 'overdue' | ''>('');
 
     // 동아리 목록 가져오기
     useEffect(() => {
@@ -359,7 +359,7 @@ export function UserDashboardPage() {
                         <div className="filter-container" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as '' | 'inuse' | 'overdue' | 'returned')}
+                                onChange={(e) => setStatusFilter(e.target.value as '' | 'in_use' | 'overdue' | 'returned')}
                                 style={{
                                     padding: '0.5rem',
                                     borderRadius: '0',
@@ -370,7 +370,7 @@ export function UserDashboardPage() {
                                 }}
                             >
                                 <option value="">전체 내역</option>
-                                <option value="inuse">대여중</option>
+                                <option value="in_use">대여중</option>
                                 <option value="overdue">연체</option>
                                 <option value="returned">반납완료</option>
                             </select>
@@ -384,40 +384,43 @@ export function UserDashboardPage() {
                             </div>
                         ) : (
                             <div className="asset-list">
-                                {schedules.map((schedule) => (
-                                    <div key={schedule.id} className="asset-card">
-                                        <div className="asset-image">
-                                            <div className="asset-image-placeholder">
-                                                {schedule.status === 'inuse' || schedule.status === 'overdue' ? '📱' : '✅'}
+                                {schedules.map((schedule) => {
+                                    // 1. 상태 판별 로직은 map의 실행 블록({}) 내부에서 처리합니다.
+                                    const currentStatus = schedule.status.toLowerCase();
+                                    const isInUse = currentStatus === 'in_use' || currentStatus === 'overdue';
+                                    const isReturned = currentStatus === 'returned';
+
+                                    // 2. 반드시 실제 JSX 요소(div 등)를 return 해야 합니다.
+                                    return (
+                                        <div key={schedule.id} className="asset-card">
+                                            <div className="asset-image">
+                                                <div className="asset-image-placeholder">
+                                                    {isInUse ? '📱' : (isReturned ? '✅' : '📦')}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="asset-info">
-                                            <h3 className="asset-name">물품 ID: {schedule.asset_id}</h3>
-                                            <p className="asset-detail">
-                                                동아리: {clubNames[schedule.club_id] || '로딩중...'}
-                                            </p>
-                                            <p className="asset-detail">
-                                                대여일: {formatDate(schedule.start_date)}
-                                            </p>
-                                            <p className="asset-detail">
-                                                상태: {schedule.status === 'inuse' ? '대여중' : schedule.status === 'overdue' ? '연체' : '반납완료'}
-                                            </p>
-                                            {schedule.end_date && (
+                                            <div className="asset-info">
+                                                <h3 className="asset-name">물품 ID: {schedule.asset_id}</h3>
                                                 <p className="asset-detail">
-                                                    반납일: {formatDate(schedule.end_date)}
+                                                    동아리: {clubNames[schedule.club_id] || '로딩중...'}
                                                 </p>
+                                                <p className="asset-detail">
+                                                    대여일: {new Date(schedule.start_date).toLocaleDateString('ko-KR')}
+                                                </p>
+                                                <p className="asset-detail">
+                                                    상태: {isInUse ? (currentStatus === 'overdue' ? '연체' : '대여중') : (isReturned ? '반납완료' : '알 수 없음')}
+                                                </p>
+                                            </div>
+                                            {isInUse && (
+                                                <button
+                                                    className="primary-btn"
+                                                    onClick={() => handleReturnItem(schedule)}
+                                                >
+                                                    반납하기
+                                                </button>
                                             )}
                                         </div>
-                                        {(schedule.status === 'inuse' || schedule.status === 'overdue') && (
-                                            <button
-                                                className="primary-btn"
-                                                onClick={() => handleReturnItem(schedule)}
-                                            >
-                                                반납하기
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

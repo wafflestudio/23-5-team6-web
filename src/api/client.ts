@@ -52,7 +52,7 @@ export interface Schedule {
     asset_id: number;
     user_id: string;
     club_id: number;
-    status: string; // 'inuse' | 'returned' | ...
+    status: string; // 'in_use' | 'returned' | ...
 }
 
 export interface SchedulesResponse {

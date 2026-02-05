@@ -1287,8 +1287,8 @@ export function AdminDashboardPage() {
                                 전체
                             </button>
                             <button
-                                className={`filter-btn ${scheduleFilter === 'inuse' ? 'active' : ''}`}
-                                onClick={() => { setScheduleFilter('inuse'); if (myClubId) fetchSchedules(myClubId, 'inuse'); }}
+                                className={`filter-btn ${scheduleFilter === 'in_use' ? 'active' : ''}`}
+                                onClick={() => { setScheduleFilter('in_use'); if (myClubId) fetchSchedules(myClubId, 'in_use'); }}
                             >
                                 대여중
                             </button>
@@ -1333,8 +1333,8 @@ export function AdminDashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="schedule-status">
-                                                <span className={`status-tag ${schedule.status === 'inuse' ? 'pending' : schedule.status === 'overdue' ? 'overdue' : 'approved'}`}>
-                                                    {schedule.status === 'inuse' ? '대여중' : schedule.status === 'overdue' ? '연체' : '반납완료'}
+                                                <span className={`status-tag ${schedule.status.toLowerCase() === 'in_use' ? 'pending' : schedule.status.toLowerCase() === 'overdue' ? 'overdue' : 'approved'}`}>
+                                                    {schedule.status.toLowerCase() === 'in_use' ? '대여중' : schedule.status.toLowerCase() === 'overdue' ? '연체' : '반납완료'}
                                                 </span>
                                             </div>
                                         </div>
