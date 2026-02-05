@@ -42,7 +42,7 @@ export function LoginPage() {
                 navigate('/', { replace: true });
             }
         }
-    }, [isLoggedIn, isAdmin, navigate]);
+    }, []);
 
     // 브라우저 뒤로가기/앞으로가기 시 로딩 상태 초기화 (bfcache 대응)
     useEffect(() => {

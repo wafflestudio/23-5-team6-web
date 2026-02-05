@@ -30,7 +30,7 @@ export function UserDashboardPage() {
     // 대여 항목 상태
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [schedulesLoading, setSchedulesLoading] = useState(false);
-    const [statusFilter, setStatusFilter] = useState<'inuse' | 'returned' | ''>('');
+    const [statusFilter, setStatusFilter] = useState<'inuse' | 'returned' | 'overdue' | ''>('');
 
     // 동아리 목록 가져오기
     useEffect(() => {
@@ -359,7 +359,7 @@ export function UserDashboardPage() {
                         <div className="filter-container" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as '' | 'inuse' | 'returned')}
+                                onChange={(e) => setStatusFilter(e.target.value as '' | 'inuse' | 'overdue' | 'returned')}
                                 style={{
                                     padding: '0.5rem',
                                     borderRadius: '0',
@@ -371,6 +371,7 @@ export function UserDashboardPage() {
                             >
                                 <option value="">전체 내역</option>
                                 <option value="inuse">대여중</option>
+                                <option value="overdue">연체</option>
                                 <option value="returned">반납완료</option>
                             </select>
                         </div>

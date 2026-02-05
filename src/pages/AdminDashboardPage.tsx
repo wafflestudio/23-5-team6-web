@@ -42,7 +42,12 @@ function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClic
             observer.observe(cardRef.current);
         }
 
-        return () => observer.disconnect();
+        return () => {
+            if (cardRef.current) {
+                observer.unobserve(cardRef.current);
+            }
+            observer.disconnect();
+        };
     }, [asset.id, hasLoaded, onLoadPicture]);
 
     return (
@@ -226,11 +231,20 @@ export function AdminDashboardPage() {
 
     // 개별 자산의 대표 사진 로드 (Intersection Observer용)
     const loadAssetMainPicture = useCallback(async (assetId: number) => {
-        // 이미 로드했거나 로딩 중이면 스킵
-        if (assetMainPictures[assetId] !== undefined) return;
+        let shouldFetch = false;
 
-        // 로딩 중 표시 (null로 설정)
-        setAssetMainPictures(prev => ({ ...prev, [assetId]: null }));
+        // 이미 로드했거나 로딩 중이면 스킵, 아니면 로딩 중 표시 (null로 설정)
+        setAssetMainPictures(prev => {
+            if (prev[assetId] !== undefined) {
+                return prev;
+            }
+            shouldFetch = true;
+            return { ...prev, [assetId]: null };
+        });
+
+        if (!shouldFetch) {
+            return;
+        }
 
         const picturesResult = await getAssetPictures(assetId);
         if (picturesResult.success && picturesResult.data) {
