@@ -1032,7 +1032,7 @@ export function AdminDashboardPage() {
                                 // 페이지네이션 버튼 계산 (최대 5개)
                                 const maxVisible = 5;
                                 let startPage = Math.max(1, assetPage - Math.floor(maxVisible / 2));
-                                let endPage = Math.min(totalAssetPages, startPage + maxVisible - 1);
+                                const endPage = Math.min(totalAssetPages, startPage + maxVisible - 1);
                                 if (endPage - startPage + 1 < maxVisible) {
                                     startPage = Math.max(1, endPage - maxVisible + 1);
                                 }

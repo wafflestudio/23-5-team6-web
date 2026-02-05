@@ -1138,7 +1138,7 @@ export function MyPage() {
                                                     name: newClubName
                                                 });
 
-                                                if (result.success) {
+                                                if (result.success && result.data) {
                                                     setClubName(result.data.name);
                                                     setShowUpdateClubModal(false);
                                                     setNewClubName('');

@@ -1594,7 +1594,7 @@ export const withdrawAccount = async (): Promise<{ success: boolean; error?: str
 };
 
 // 동아리 정보 수정 (관리자용)
-export const updateClub = async (clubId: number, data: { name: string, description?: string, location_lat?: number, location_lng?: number }): Promise<{ success: boolean; data?: any; error?: string }> => {
+export const updateClub = async (clubId: number, data: { name: string, description?: string, location_lat?: number, location_lng?: number }): Promise<{ success: boolean; data?: Club; error?: string }> => {
     try {
         const response = await authFetch(`/api/clubs/${clubId}`, {
             method: 'PUT',

@@ -47,7 +47,7 @@ export function PasswordChangeSection() {
             } else {
                 setResult({ success: false, message: apiResult.error || '비밀번호 변경에 실패했습니다.' });
             }
-        } catch (error) {
+        } catch {
             setResult({ success: false, message: '알 수 없는 오류가 발생했습니다.' });
         }
 
