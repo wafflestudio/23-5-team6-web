@@ -225,11 +225,14 @@ const doRefreshToken = async (): Promise<{ success: boolean; newAccessToken?: st
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     const accessToken = getAccessToken();
 
+    // 토큰이 없으면 바로 401 응답 반환 (갱신 시도 안 함)
+    if (!accessToken) {
+        return new Response(null, { status: 401, statusText: 'Unauthorized' });
+    }
+
     // 헤더에 Authorization 추가
     const headers = new Headers(options.headers || {});
-    if (accessToken) {
-        headers.set('Authorization', `Bearer ${accessToken}`);
-    }
+    headers.set('Authorization', `Bearer ${accessToken}`);
 
     const response = await fetch(url, { ...options, headers });
 
@@ -262,9 +265,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
             headers.set('Authorization', `Bearer ${result.newAccessToken}`);
             return fetch(url, { ...options, headers });
         }
-        // 갱신 실패 - 로그인 페이지로 이동
-        showToast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error');
-        window.location.href = '/login';
+        // 갱신 실패 - 토큰 정리하고 401 반환 (리다이렉트는 각 페이지에서 처리)
+        clearTokens();
         return response;
     } finally {
         isRefreshing = false;
@@ -1587,6 +1589,37 @@ export const withdrawAccount = async (): Promise<{ success: boolean; error?: str
         }
     } catch (error) {
         console.error('Withdraw account error:', error);
+        return { success: false, error: 'Network error occurred' };
+    }
+};
+
+// 동아리 정보 수정 (관리자용)
+export const updateClub = async (clubId: number, data: { name: string, description?: string, location_lat?: number, location_lng?: number }): Promise<{ success: boolean; data?: Club; error?: string }> => {
+    try {
+        const response = await authFetch(`/api/clubs/${clubId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.status === 200) {
+            const result = await response.json();
+            showNotification('동아리 정보가 수정되었습니다.');
+            return { success: true, data: result };
+        } else if (response.status === 401) {
+            return { success: false, error: '인증이 만료되었습니다.' };
+        } else if (response.status === 422) {
+            const errorData: ValidationError = await response.json();
+            const errorMessage = errorData.detail.map(d => d.msg).join(', ');
+            return { success: false, error: errorMessage || '유효성 검증 실패' };
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || '동아리 정보 수정에 실패했습니다.' };
+        }
+    } catch (error) {
+        console.error('Update club error:', error);
         return { success: false, error: 'Network error occurred' };
     }
 };

@@ -18,6 +18,7 @@ export function ItemListPage() {
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [returnDate, setReturnDate] = useState('');
+    const [expandedAssetId, setExpandedAssetId] = useState<number | null>(null);
 
     const clubIdNum = parseInt(clubId || '0', 10);
     const isValidClubId = !Number.isNaN(clubIdNum) && clubIdNum > 0;
@@ -105,52 +106,94 @@ export function ItemListPage() {
                 ) : (
                     <>
                         <div className="item-grid">
-                            {currentAssets.map(asset => (
-                                <div key={asset.id} className="item-card">
-                                    <div className="item-image">
-                                        <span style={{ fontSize: '2rem' }}>📦</span>
-                                    </div>
-                                    <div className="item-content">
-                                        <div className="item-header">
-                                            <h3 className="item-name">{asset.name}</h3>
-                                            <span className={`status-badge ${asset.available_quantity > 0 ? 'available' : 'borrowed'}`}>
-                                                {asset.available_quantity > 0 ? '대여 가능' : '대여 불가'}
-                                            </span>
+                            {currentAssets.map(asset => {
+                                const isExpanded = expandedAssetId === asset.id;
+                                return (
+                                    <div
+                                        key={asset.id}
+                                        className="item-card"
+                                        onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <div className="item-image">
+                                            <span style={{ fontSize: '2rem' }}>📦</span>
                                         </div>
-                                        <div className="item-details">
-                                            <p className="asset-detail">
-                                                수량: {asset.available_quantity}/{asset.total_quantity}
-                                            </p>
-                                            <p className="asset-detail">
-                                                위치: {asset.location || '미지정'}
-                                            </p>
-                                            <p className="item-description">
-                                                {asset.description || '설명이 없습니다.'}
-                                            </p>
+                                        <div className="item-content">
+                                            <div className="item-header">
+                                                <h3 className="item-name">{asset.name}</h3>
+                                                <span className={`status-badge ${asset.available_quantity > 0 ? 'available' : 'borrowed'}`}>
+                                                    {asset.available_quantity > 0 ? '대여 가능' : '대여 불가'}
+                                                </span>
+                                            </div>
+                                            <div className="item-details">
+                                                <p className="asset-detail">
+                                                    수량: {asset.available_quantity}/{asset.total_quantity}
+                                                </p>
+                                                <p className="asset-detail">
+                                                    위치: {asset.location || '미지정'}
+                                                </p>
+                                                <p className="item-description" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                                    {asset.description
+                                                        ? (isExpanded || asset.description.length <= 50
+                                                            ? asset.description
+                                                            : `${asset.description.slice(0, 50)}...`)
+                                                        : '설명이 없습니다.'}
+                                                </p>
+                                            </div>
+                                            {asset.available_quantity > 0 ? (
+                                                <button
+                                                    className="rent-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRentClick(asset);
+                                                    }}
+                                                    style={{ width: '100%' }}
+                                                >
+                                                    대여하기
+                                                </button>
+                                            ) : (
+                                                <button className="rent-btn disabled" disabled style={{ width: '100%' }}>
+                                                    품절
+                                                </button>
+                                            )}
                                         </div>
-                                        {asset.available_quantity > 0 ? (
-                                            <button className="rent-btn" onClick={() => handleRentClick(asset)} style={{ width: '100%' }}>
-                                                대여하기
-                                            </button>
-                                        ) : (
-                                            <button className="rent-btn disabled" disabled style={{ width: '100%' }}>
-                                                품절
-                                            </button>
-                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
-                        {totalPages > 1 && (
-                            <div className="pagination">
-                                <button className="pagination-btn" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>←</button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button key={page} className={`pagination-btn ${page === currentPage ? 'active' : ''}`} onClick={() => handlePageChange(page)}>{page}</button>
-                                ))}
-                                <button className="pagination-btn" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
-                            </div>
-                        )}
+                        {totalPages > 1 && (() => {
+                            // 최대 5개 페이지 버튼만 표시
+                            const maxVisible = 5;
+                            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                            const endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                            if (endPage - startPage + 1 < maxVisible) {
+                                startPage = Math.max(1, endPage - maxVisible + 1);
+                            }
+                            const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+                            return (
+                                <div className="pagination">
+                                    <button className="pagination-btn" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>←</button>
+                                    {startPage > 1 && (
+                                        <>
+                                            <button className="pagination-btn" onClick={() => handlePageChange(1)}>1</button>
+                                            {startPage > 2 && <span className="pagination-ellipsis">...</span>}
+                                        </>
+                                    )}
+                                    {pageNumbers.map(page => (
+                                        <button key={page} className={`pagination-btn ${page === currentPage ? 'active' : ''}`} onClick={() => handlePageChange(page)}>{page}</button>
+                                    ))}
+                                    {endPage < totalPages && (
+                                        <>
+                                            {endPage < totalPages - 1 && <span className="pagination-ellipsis">...</span>}
+                                            <button className="pagination-btn" onClick={() => handlePageChange(totalPages)}>{totalPages}</button>
+                                        </>
+                                    )}
+                                    <button className="pagination-btn" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
+                                </div>
+                            );
+                        })()}
                     </>
                 )}
             </main>

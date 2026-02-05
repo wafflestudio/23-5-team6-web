@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, getAssetPictures, addAssetPicture, setMainPicture, deleteAssetPicture, getPictureUrl, getSchedules, type ClubMember, type Asset, type AssetStatistics, type AssetPicture, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
@@ -7,6 +7,136 @@ import * as XLSX from 'xlsx';
 type TabType = 'assets' | 'rentals' | 'members';
 
 // permission 값에 따른 상태 태그
+// Intersection Observer를 사용한 Lazy Loading 자산 카드
+interface LazyAssetCardProps {
+    asset: Asset;
+    isExpanded: boolean;
+    mainPictureId: number | null | undefined;
+    onLoadPicture: (assetId: number) => void;
+    onClick: () => void;
+    editingAsset: { name: string; description: string; quantity: number; location: string; max_rental_days: number | null } | null;
+    statsLoading: boolean;
+    statsError: string | null;
+    assetStats: AssetStatistics | null;
+    onEditClick: () => void;
+}
+
+function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClick, editingAsset, statsLoading, statsError, assetStats, onEditClick }: LazyAssetCardProps) {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [hasLoaded, setHasLoaded] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && !hasLoaded) {
+                        setHasLoaded(true);
+                        onLoadPicture(asset.id);
+                    }
+                });
+            },
+            { rootMargin: '100px' } // 100px 전에 미리 로드
+        );
+
+        if (cardRef.current) {
+            observer.observe(cardRef.current);
+        }
+
+        return () => {
+            if (cardRef.current) {
+                observer.unobserve(cardRef.current);
+            }
+            observer.disconnect();
+        };
+    }, [asset.id, hasLoaded, onLoadPicture]);
+
+    return (
+        <div
+            ref={cardRef}
+            className={`asset-card ${isExpanded ? 'expanded' : ''}`}
+            onClick={onClick}
+        >
+            <div className="asset-card-header">
+                <div className="asset-image">
+                    {mainPictureId ? (
+                        <img
+                            src={getPictureUrl(mainPictureId)}
+                            alt={asset.name}
+                            className="asset-main-picture"
+                        />
+                    ) : (
+                        <div className="asset-image-placeholder">📦</div>
+                    )}
+                </div>
+                <div className="asset-info">
+                    <h3 className="asset-name">{asset.name}</h3>
+                    <p className="asset-detail">
+                        수량: {asset.available_quantity}/{asset.total_quantity}
+                    </p>
+                    <p className="asset-detail" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {asset.description
+                            ? (isExpanded || asset.description.length <= 40
+                                ? asset.description
+                                : `${asset.description.slice(0, 40)}...`)
+                            : '설명 없음'}
+                    </p>
+                </div>
+            </div>
+
+            {/* 개별 물품 확장된 세부사항 */}
+            {isExpanded && editingAsset && (
+                <div className="asset-detail-form" onClick={(e) => e.stopPropagation()}>
+                    {/* 통계 섹션 */}
+                    <div className="asset-stats-section">
+                        <h4 className="stats-title">📊 대여 통계</h4>
+                        {statsLoading ? (
+                            <div className="stats-loading">통계 불러오는 중...</div>
+                        ) : statsError ? (
+                            <div className="stats-error">{statsError}</div>
+                        ) : assetStats ? (
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <span className="stat-value">{assetStats.total_rental_count}</span>
+                                    <span className="stat-label">총 대여 횟수</span>
+                                </div>
+                                <div className="stat-card">
+                                    <span className="stat-value">{assetStats.unique_borrower_count}</span>
+                                    <span className="stat-label">이용자 수</span>
+                                </div>
+                                <div className="stat-card">
+                                    <span className="stat-value">
+                                        {assetStats.average_rental_duration > 0
+                                            ? `${Math.round(assetStats.average_rental_duration)}일`
+                                            : '-'}
+                                    </span>
+                                    <span className="stat-label">평균 대여 기간</span>
+                                </div>
+                                <div className="stat-card">
+                                    <span className="stat-value">{assetStats.recent_rental_count}</span>
+                                    <span className="stat-label">최근 대여</span>
+                                </div>
+                                {assetStats.last_borrowed_at && (
+                                    <div className="stat-card full-width">
+                                        <span className="stat-value">
+                                            {new Date(assetStats.last_borrowed_at).toLocaleDateString('ko-KR')}
+                                        </span>
+                                        <span className="stat-label">마지막 대여일</span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
+
+                    {/* 수정 버튼 */}
+                    <button className="edit-asset-btn" onClick={onEditClick}>
+                        ✏️ 물품 수정하기
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 const getPermissionTag = (permission: number) => {
     switch (permission) {
         case 0:
@@ -40,6 +170,10 @@ export function AdminDashboardPage() {
     const [assetsLoading, setAssetsLoading] = useState(true);
     const [assetsError, setAssetsError] = useState<string | null>(null);
 
+    // 자산 페이지네이션
+    const [assetPage, setAssetPage] = useState(1);
+    const ASSETS_PER_PAGE = 10;
+
     // 확장된 자산 카드 및 수정 상태
     const [expandedAssetId, setExpandedAssetId] = useState<number | null>(null);
     const [editingAsset, setEditingAsset] = useState<{
@@ -51,6 +185,7 @@ export function AdminDashboardPage() {
     } | null>(null);
     const [isUpdatingAsset, setIsUpdatingAsset] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [editModalError, setEditModalError] = useState<string | null>(null);
 
     // 자산 통계 상태
     const [assetStats, setAssetStats] = useState<AssetStatistics | null>(null);
@@ -80,37 +215,43 @@ export function AdminDashboardPage() {
     const [schedulesError, setSchedulesError] = useState<string | null>(null);
     const [scheduleFilter, setScheduleFilter] = useState<string>('all');
 
-    // 자산 목록 가져오기 함수
+    // 자산 목록 가져오기 함수 (사진은 Intersection Observer로 개별 로드)
     const fetchAssets = async (clubId: number) => {
         setAssetsLoading(true);
         setAssetsError(null);
         const result = await getAssets(clubId);
         if (result.success && result.data) {
             setAssets(result.data);
-
-            // 각 자산의 대표 사진 조회 (개별 실패 시에도 나머지 결과 사용)
-            const mainPictures: Record<number, number | null> = {};
-            const pictureResults = await Promise.allSettled(result.data.map(async (asset) => {
-                const picturesResult = await getAssetPictures(asset.id);
-                return { assetId: asset.id, picturesResult };
-            }));
-            pictureResults.forEach((settledResult) => {
-                if (settledResult.status === 'fulfilled') {
-                    const { assetId, picturesResult } = settledResult.value;
-                    if (picturesResult.success && picturesResult.data) {
-                        const mainPic = picturesResult.data.find(p => p.is_main);
-                        mainPictures[assetId] = mainPic ? mainPic.id : null;
-                    } else {
-                        mainPictures[assetId] = null;
-                    }
-                }
-            });
-            setAssetMainPictures(mainPictures);
+            // 사진은 초기 로딩하지 않음 - Intersection Observer로 개별 로드
         } else {
             setAssetsError(result.error || '자산 목록을 불러오는데 실패했습니다.');
         }
         setAssetsLoading(false);
     };
+
+    // 개별 자산의 대표 사진 로드 (Intersection Observer용)
+    const loadAssetMainPicture = useCallback(async (assetId: number) => {
+        let shouldFetch = false;
+
+        // 이미 로드했거나 로딩 중이면 스킵, 아니면 로딩 중 표시 (null로 설정)
+        setAssetMainPictures(prev => {
+            if (prev[assetId] !== undefined) {
+                return prev;
+            }
+            shouldFetch = true;
+            return { ...prev, [assetId]: null };
+        });
+
+        if (!shouldFetch) {
+            return;
+        }
+
+        const picturesResult = await getAssetPictures(assetId);
+        if (picturesResult.success && picturesResult.data) {
+            const mainPic = picturesResult.data.find(p => p.is_main);
+            setAssetMainPictures(prev => ({ ...prev, [assetId]: mainPic ? mainPic.id : null }));
+        }
+    }, [assetMainPictures]);
 
     // 대여 현황 가져오기 함수
     const fetchSchedules = async (clubId: number, status?: string) => {
@@ -175,28 +316,9 @@ export function AdminDashboardPage() {
             }
             setMembersLoading(false);
 
-            // 자산 결과 처리
+            // 자산 결과 처리 (사진은 Intersection Observer로 개별 로드)
             if (assetsResult.status === 'fulfilled' && assetsResult.value.success && assetsResult.value.data) {
                 setAssets(assetsResult.value.data);
-
-                // 각 자산의 대표 사진 조회 (개별 실패 시에도 나머지 결과 사용)
-                const mainPictures: Record<number, number | null> = {};
-                const pictureResults = await Promise.allSettled(assetsResult.value.data.map(async (asset) => {
-                    const picturesResult = await getAssetPictures(asset.id);
-                    return { assetId: asset.id, picturesResult };
-                }));
-                pictureResults.forEach((settledResult) => {
-                    if (settledResult.status === 'fulfilled') {
-                        const { assetId, picturesResult } = settledResult.value;
-                        if (picturesResult.success && picturesResult.data) {
-                            const mainPic = picturesResult.data.find(p => p.is_main);
-                            mainPictures[assetId] = mainPic ? mainPic.id : null;
-                        } else {
-                            mainPictures[assetId] = null;
-                        }
-                    }
-                });
-                setAssetMainPictures(mainPictures);
             } else if (assetsResult.status === 'fulfilled') {
                 setAssetsError(assetsResult.value.error || '자산 목록을 불러오는데 실패했습니다.');
             } else {
@@ -466,21 +588,22 @@ export function AdminDashboardPage() {
         }
     };
 
-    // 자산 수정 핸들러
-    const handleUpdateAsset = async () => {
-        if (!expandedAssetId || !editingAsset) return;
+    // 자산 수정 핸들러 (성공 시 true 반환)
+    const handleUpdateAsset = async (): Promise<boolean> => {
+        if (!expandedAssetId || !editingAsset) return false;
 
         if (!editingAsset.name.trim()) {
-            setError('물품 이름을 입력해주세요.');
-            return;
+            setEditModalError('물품 이름을 입력해주세요.');
+            return false;
         }
 
         setIsUpdatingAsset(true);
-        setError(null);
+        setEditModalError(null);
 
         if (!myClubId) {
-            setError('동아리 정보가 없습니다.');
-            return;
+            setEditModalError('동아리 정보가 없습니다.');
+            setIsUpdatingAsset(false);
+            return false;
         }
 
         const result = await updateAsset(expandedAssetId, {
@@ -500,8 +623,10 @@ export function AdminDashboardPage() {
             if (myClubId) {
                 fetchAssets(myClubId);
             }
+            return true;
         } else {
-            setError(result.error || '물품 수정에 실패했습니다.');
+            setEditModalError(result.error || '물품 수정에 실패했습니다.');
+            return false;
         }
     };
 
@@ -913,103 +1038,76 @@ export function AdminDashboardPage() {
                                 <div className="empty-state">
                                     <p>등록된 자산이 없습니다.</p>
                                 </div>
-                            ) : (
-                                <div className="asset-list">
-                                    {assets.map((asset) => (
-                                        <div
-                                            key={asset.id}
-                                            className={`asset-card ${expandedAssetId === asset.id ? 'expanded' : ''}`}
-                                            onClick={() => handleAssetClick(asset)}
-                                        >
-                                            <div className="asset-card-header">
-                                                <div className="asset-image">
-                                                    {assetMainPictures[asset.id] ? (
-                                                        <img
-                                                            src={getPictureUrl(assetMainPictures[asset.id]!)}
-                                                            alt={asset.name}
-                                                            className="asset-main-picture"
-                                                        />
-                                                    ) : (
-                                                        <div className="asset-image-placeholder">📦</div>
-                                                    )}
-                                                </div>
-                                                <div className="asset-info">
-                                                    <h3 className="asset-name">{asset.name}</h3>
-                                                    <p className="asset-detail">
-                                                        수량: {asset.available_quantity}/{asset.total_quantity}
-                                                    </p>
-                                                    <p className="asset-detail">
-                                                        {asset.description || '설명 없음'}
-                                                    </p>
-                                                </div>
-                                            </div>
+                            ) : (() => {
+                                const totalAssetPages = Math.ceil(assets.length / ASSETS_PER_PAGE);
+                                const startIdx = (assetPage - 1) * ASSETS_PER_PAGE;
+                                const currentAssets = assets.slice(startIdx, startIdx + ASSETS_PER_PAGE);
 
-                                            {/* 개별 물품 확장된 세부사항 */}
-                                            {expandedAssetId === asset.id && editingAsset && (
-                                                <div className="asset-detail-form" onClick={(e) => e.stopPropagation()}>
-                                                    {/* 통계 섹션 */}
-                                                    <div className="asset-stats-section">
-                                                        <h4 className="stats-title">📊 대여 통계</h4>
-                                                        {statsLoading ? (
-                                                            <div className="stats-loading">통계 불러오는 중...</div>
-                                                        ) : statsError ? (
-                                                            <div className="stats-error">{statsError}</div>
-                                                        ) : assetStats ? (
-                                                            <div className="stats-grid">
-                                                                <div className="stat-card">
-                                                                    <span className="stat-value">{assetStats.total_rental_count}</span>
-                                                                    <span className="stat-label">총 대여 횟수</span>
-                                                                </div>
-                                                                <div className="stat-card">
-                                                                    <span className="stat-value">{assetStats.unique_borrower_count}</span>
-                                                                    <span className="stat-label">이용자 수</span>
-                                                                </div>
-                                                                <div className="stat-card">
-                                                                    <span className="stat-value">
-                                                                        {assetStats.average_rental_duration > 0
-                                                                            ? `${Math.round(assetStats.average_rental_duration)}일`
-                                                                            : '-'}
-                                                                    </span>
-                                                                    <span className="stat-label">평균 대여 기간</span>
-                                                                </div>
-                                                                <div className="stat-card">
-                                                                    <span className="stat-value">{assetStats.recent_rental_count}</span>
-                                                                    <span className="stat-label">최근 대여</span>
-                                                                </div>
-                                                                {assetStats.last_borrowed_at && (
-                                                                    <div className="stat-card full-width">
-                                                                        <span className="stat-value">
-                                                                            {new Date(assetStats.last_borrowed_at).toLocaleDateString('ko-KR')}
-                                                                        </span>
-                                                                        <span className="stat-label">마지막 대여일</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : null}
-                                                    </div>
+                                // 페이지네이션 버튼 계산 (최대 5개)
+                                const maxVisible = 5;
+                                let startPage = Math.max(1, assetPage - Math.floor(maxVisible / 2));
+                                const endPage = Math.min(totalAssetPages, startPage + maxVisible - 1);
+                                if (endPage - startPage + 1 < maxVisible) {
+                                    startPage = Math.max(1, endPage - maxVisible + 1);
+                                }
+                                const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
 
-                                                    {/* 수정 버튼 */}
-                                                    <button
-                                                        className="edit-asset-btn"
-                                                        onClick={() => {
-                                                            setEditingAsset({
-                                                                name: asset.name,
-                                                                description: asset.description,
-                                                                quantity: asset.total_quantity,
-                                                                location: asset.location,
-                                                                max_rental_days: asset.max_rental_days || null,
-                                                            });
-                                                            setShowEditModal(true);
-                                                        }}
-                                                    >
-                                                        ✏️ 물품 수정하기
-                                                    </button>
-                                                </div>
-                                            )}
+                                return (
+                                    <>
+                                        <p className="page-subtitle" style={{ marginBottom: '1rem', color: 'var(--gray-500)' }}>
+                                            총 {assets.length}개 자산
+                                        </p>
+                                        <div className="asset-list">
+                                            {currentAssets.map((asset) => (
+                                                <LazyAssetCard
+                                                    key={asset.id}
+                                                    asset={asset}
+                                                    isExpanded={expandedAssetId === asset.id}
+                                                    mainPictureId={assetMainPictures[asset.id]}
+                                                    onLoadPicture={loadAssetMainPicture}
+                                                    onClick={() => handleAssetClick(asset)}
+                                                    editingAsset={editingAsset}
+                                                    statsLoading={statsLoading}
+                                                    statsError={statsError}
+                                                    assetStats={assetStats}
+                                                    onEditClick={() => {
+                                                        setEditingAsset({
+                                                            name: asset.name,
+                                                            description: asset.description,
+                                                            quantity: asset.total_quantity,
+                                                            location: asset.location,
+                                                            max_rental_days: asset.max_rental_days || null,
+                                                        });
+                                                        setEditModalError(null);
+                                                        setShowEditModal(true);
+                                                    }}
+                                                />
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        {totalAssetPages > 1 && (
+                                            <div className="pagination">
+                                                <button className="pagination-btn" onClick={() => { setAssetPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={assetPage === 1}>←</button>
+                                                {startPage > 1 && (
+                                                    <>
+                                                        <button className="pagination-btn" onClick={() => { setAssetPage(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>1</button>
+                                                        {startPage > 2 && <span className="pagination-ellipsis">...</span>}
+                                                    </>
+                                                )}
+                                                {pageNumbers.map(page => (
+                                                    <button key={page} className={`pagination-btn ${page === assetPage ? 'active' : ''}`} onClick={() => { setAssetPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{page}</button>
+                                                ))}
+                                                {endPage < totalAssetPages && (
+                                                    <>
+                                                        {endPage < totalAssetPages - 1 && <span className="pagination-ellipsis">...</span>}
+                                                        <button className="pagination-btn" onClick={() => { setAssetPage(totalAssetPages); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{totalAssetPages}</button>
+                                                    </>
+                                                )}
+                                                <button className="pagination-btn" onClick={() => { setAssetPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={assetPage === totalAssetPages}>→</button>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     )
                 }
@@ -1149,7 +1247,7 @@ export function AdminDashboardPage() {
                                         )}
                                     </div>
 
-                                    {error && <p className="error-message">{error}</p>}
+                                    {editModalError && <p className="error-message">{editModalError}</p>}
                                     <div className="form-actions">
                                         <button
                                             className="delete-asset-btn"
@@ -1161,8 +1259,10 @@ export function AdminDashboardPage() {
                                         <button
                                             className="approve-btn"
                                             onClick={async () => {
-                                                await handleUpdateAsset();
-                                                setShowEditModal(false);
+                                                const success = await handleUpdateAsset();
+                                                if (success) {
+                                                    setShowEditModal(false);
+                                                }
                                             }}
                                             disabled={isUpdatingAsset}
                                         >

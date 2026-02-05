@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, deleteClub, clearTokens, updateUserName, changePassword, withdrawAccount, type Schedule, type ClubMember, type Asset } from '@/api/client';
+import { updateClubCode, getMyAdminClub, getSchedules, getClubMembers, getAssets, getGoogleLinkStatus, unlinkGoogleAccount, updateClubLocation, getMyClubs, deleteClub, clearTokens, updateUserName, withdrawAccount, updateClub, type Schedule, type ClubMember, type Asset } from '@/api/client';
 import { buildGoogleOAuthURL } from '@/utils/pkce';
 import { KakaoMapPicker } from '@/components/KakaoMapPicker';
+import { PasswordChangeSection } from '@/components/PasswordChangeSection';
 import '@/styles/App.css';
 
 // Google 연동 섹션 컴포넌트 (일반 사용자용)
@@ -169,13 +170,6 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
     const [isUpdatingName, setIsUpdatingName] = useState(false);
     const [nameUpdateResult, setNameUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
 
-    // 비밀번호 변경 상태
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [isChangingPassword, setIsChangingPassword] = useState(false);
-    const [passwordChangeResult, setPasswordChangeResult] = useState<{ success: boolean; message: string } | null>(null);
-
     // 회원 탈퇴 상태
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [withdrawConfirmText, setWithdrawConfirmText] = useState('');
@@ -194,9 +188,6 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
         fetchUserEmail();
     }, []);
 
-    // 비밀번호 일치 여부 확인
-    const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
-    const passwordsNotMatch = newPassword && confirmPassword && newPassword !== confirmPassword;
 
     // 이름 변경 핸들러
     const handleUpdateName = async () => {
@@ -222,41 +213,6 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
         setIsUpdatingName(false);
     };
 
-    // 비밀번호 변경 핸들러
-    const handleChangePassword = async () => {
-        if (!currentPassword) {
-            setPasswordChangeResult({ success: false, message: '현재 비밀번호를 입력해주세요.' });
-            return;
-        }
-        if (!newPassword) {
-            setPasswordChangeResult({ success: false, message: '새 비밀번호를 입력해주세요.' });
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setPasswordChangeResult({ success: false, message: '새 비밀번호가 일치하지 않습니다.' });
-            return;
-        }
-        if (newPassword.length < 6) {
-            setPasswordChangeResult({ success: false, message: '비밀번호는 6자 이상이어야 합니다.' });
-            return;
-        }
-        // 확인 다이얼로그
-        if (!confirm('비밀번호를 변경하시겠습니까?')) {
-            return;
-        }
-        setIsChangingPassword(true);
-        setPasswordChangeResult(null);
-        const result = await changePassword(currentPassword, newPassword);
-        if (result.success) {
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            setPasswordChangeResult({ success: true, message: '비밀번호가 변경되었습니다.' });
-        } else {
-            setPasswordChangeResult({ success: false, message: result.error || '비밀번호 변경에 실패했습니다.' });
-        }
-        setIsChangingPassword(false);
-    };
 
     // 회원 탈퇴 핸들러
     const handleWithdraw = async () => {
@@ -313,70 +269,7 @@ function UserAccountSection({ navigate, logout }: { navigate: ReturnType<typeof 
             </div>
 
             {/* 비밀번호 변경 섹션 */}
-            <div className="email-test-section" style={{ marginTop: '1.5rem' }}>
-                <h2>🔒 비밀번호 변경</h2>
-                <p className="section-description">현재 비밀번호와 새 비밀번호를 입력해주세요.</p>
-
-                <div className="email-form">
-                    <div className="form-group">
-                        <label htmlFor="current-password">현재 비밀번호</label>
-                        <input
-                            id="current-password"
-                            type="password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="현재 비밀번호"
-                            autoComplete="current-password"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="new-password">새 비밀번호</label>
-                        <input
-                            id="new-password"
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="새 비밀번호 (6자 이상)"
-                            autoComplete="new-password"
-                            style={{
-                                borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
-                                borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
-                            }}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="confirm-password">새 비밀번호 확인</label>
-                        <input
-                            id="confirm-password"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="새 비밀번호 확인"
-                            autoComplete="new-password"
-                            style={{
-                                borderColor: passwordsMatch ? '#10b981' : passwordsNotMatch ? '#ef4444' : undefined,
-                                borderWidth: (passwordsMatch || passwordsNotMatch) ? '2px' : undefined
-                            }}
-                        />
-                    </div>
-
-                    {passwordChangeResult && (
-                        <div className={`send-result ${passwordChangeResult.success ? 'success' : 'error'}`}>
-                            {passwordChangeResult.message}
-                        </div>
-                    )}
-
-                    <button
-                        className="send-email-btn"
-                        onClick={handleChangePassword}
-                        disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                    >
-                        {isChangingPassword ? '변경 중...' : '비밀번호 변경'}
-                    </button>
-                </div>
-            </div>
+            <PasswordChangeSection />
 
             {/* 회원 탈퇴 섹션 */}
             <div className="email-test-section" style={{ marginTop: '1.5rem', borderColor: '#ef4444', background: 'rgba(239, 68, 68, 0.05)' }}>
@@ -522,17 +415,18 @@ export function MyPage() {
     const [isDeletingClub, setIsDeletingClub] = useState(false);
     const [deleteClubError, setDeleteClubError] = useState<string | null>(null);
 
-    // 관리자 비밀번호 변경 상태
-    const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
-    const [adminNewPassword, setAdminNewPassword] = useState('');
-    const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
-    const [isAdminChangingPassword, setIsAdminChangingPassword] = useState(false);
-    const [adminPasswordResult, setAdminPasswordResult] = useState<{ success: boolean; message: string } | null>(null);
+    // 동아리 정보 수정 상태
+    const [showUpdateClubModal, setShowUpdateClubModal] = useState(false);
+    const [updateClubConfirmName, setUpdateClubConfirmName] = useState('');
+    const [isUpdatingClub, setIsUpdatingClub] = useState(false);
+    const [updateClubError, setUpdateClubError] = useState<string | null>(null);
+    const [newClubName, setNewClubName] = useState('');
 
     // 클럽 정보 상태
     // const [clubId, setClubId] = useState<number | null>(null);
     const [clubName, setClubName] = useState('');
     const [currentClubCode, setCurrentClubCode] = useState('');
+    const [showFullClubCode, setShowFullClubCode] = useState(false);
     const [newClubCode, setNewClubCode] = useState('');
     const [isUpdatingCode, setIsUpdatingCode] = useState(false);
     const [codeUpdateResult, setCodeUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -794,7 +688,26 @@ export function MyPage() {
                     <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
                         <h2>🔑 클럽 코드 관리</h2>
                         <p className="section-description">
-                            현재 코드: <strong>{currentClubCode || '로딩 중...'}</strong>
+                            현재 코드:{' '}
+                            {currentClubCode ? (
+                                currentClubCode.length > 8 ? (
+                                    <strong
+                                        onClick={() => setShowFullClubCode(!showFullClubCode)}
+                                        style={{
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                            textDecorationStyle: 'dotted'
+                                        }}
+                                        title={showFullClubCode ? '클릭하여 축소' : '클릭하여 전체 보기'}
+                                    >
+                                        {showFullClubCode ? currentClubCode : `${currentClubCode.slice(0, 6)}...`}
+                                    </strong>
+                                ) : (
+                                    <strong>{currentClubCode}</strong>
+                                )
+                            ) : (
+                                <strong>로딩 중...</strong>
+                            )}
                         </p>
 
                         <div className="email-form">
@@ -1025,7 +938,7 @@ export function MyPage() {
 
                 {/* 관리자 전용: 이메일 테스트 섹션 */}
                 {isAdmin && (
-                    <div className="email-test-section">
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
                         <h2>📧 이메일 전송 테스트</h2>
                         <p className="section-description">Lambda 이메일 전송 기능을 테스트할 수 있습니다.</p>
 
@@ -1082,105 +995,178 @@ export function MyPage() {
 
                 {/* 관리자 전용: 비밀번호 변경 */}
                 {isAdmin && (
-                    <div className="email-test-section" style={{ marginBottom: '1.5rem' }}>
-                        <h2>🔒 비밀번호 변경</h2>
-                        <p className="section-description">현재 비밀번호와 새 비밀번호를 입력해주세요.</p>
+                    <PasswordChangeSection />
+                )}
 
-                        <div className="email-form">
-                            <div className="form-group">
-                                <label htmlFor="admin-current-password">현재 비밀번호</label>
-                                <input
-                                    id="admin-current-password"
-                                    type="password"
-                                    value={adminCurrentPassword}
-                                    onChange={(e) => setAdminCurrentPassword(e.target.value)}
-                                    placeholder="현재 비밀번호"
-                                    autoComplete="current-password"
-                                />
-                            </div>
+                {/* 관리자 전용: 동아리 이름 변경 */}
+                {isAdmin && clubId && (
+                    <div className="email-test-section" style={{ marginBottom: '1.5rem', borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.05)' }}>
+                        <h2 style={{ color: '#d97706' }}>⚠️ 동아리 정보 수정</h2>
+                        <p className="section-description" style={{ color: '#b45309' }}>
+                            동아리 이름을 변경합니다. 이 작업은 즉시 반영됩니다.
+                        </p>
 
-                            <div className="form-group">
-                                <label htmlFor="admin-new-password">새 비밀번호</label>
-                                <input
-                                    id="admin-new-password"
-                                    type="password"
-                                    value={adminNewPassword}
-                                    onChange={(e) => setAdminNewPassword(e.target.value)}
-                                    placeholder="새 비밀번호 (6자 이상)"
-                                    autoComplete="new-password"
-                                    style={{
-                                        borderColor: (adminNewPassword && adminConfirmPassword && adminNewPassword === adminConfirmPassword) ? '#10b981'
-                                            : (adminNewPassword && adminConfirmPassword && adminNewPassword !== adminConfirmPassword) ? '#ef4444'
-                                                : undefined,
-                                        borderWidth: (adminNewPassword && adminConfirmPassword) ? '2px' : undefined
-                                    }}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="admin-confirm-password">새 비밀번호 확인</label>
-                                <input
-                                    id="admin-confirm-password"
-                                    type="password"
-                                    value={adminConfirmPassword}
-                                    onChange={(e) => setAdminConfirmPassword(e.target.value)}
-                                    placeholder="새 비밀번호 확인"
-                                    autoComplete="new-password"
-                                    style={{
-                                        borderColor: (adminNewPassword && adminConfirmPassword && adminNewPassword === adminConfirmPassword) ? '#10b981'
-                                            : (adminNewPassword && adminConfirmPassword && adminNewPassword !== adminConfirmPassword) ? '#ef4444'
-                                                : undefined,
-                                        borderWidth: (adminNewPassword && adminConfirmPassword) ? '2px' : undefined
-                                    }}
-                                />
-                            </div>
-
-                            {adminPasswordResult && (
-                                <div className={`send-result ${adminPasswordResult.success ? 'success' : 'error'}`}>
-                                    {adminPasswordResult.message}
-                                </div>
-                            )}
-
-                            <button
-                                className="send-email-btn"
-                                onClick={async () => {
-                                    if (!adminCurrentPassword) {
-                                        setAdminPasswordResult({ success: false, message: '현재 비밀번호를 입력해주세요.' });
-                                        return;
-                                    }
-                                    if (!adminNewPassword) {
-                                        setAdminPasswordResult({ success: false, message: '새 비밀번호를 입력해주세요.' });
-                                        return;
-                                    }
-                                    if (adminNewPassword !== adminConfirmPassword) {
-                                        setAdminPasswordResult({ success: false, message: '새 비밀번호가 일치하지 않습니다.' });
-                                        return;
-                                    }
-                                    if (adminNewPassword.length < 6) {
-                                        setAdminPasswordResult({ success: false, message: '비밀번호는 6자 이상이어야 합니다.' });
-                                        return;
-                                    }
-                                    if (!confirm('비밀번호를 변경하시겠습니까?')) {
-                                        return;
-                                    }
-                                    setIsAdminChangingPassword(true);
-                                    setAdminPasswordResult(null);
-                                    const result = await changePassword(adminCurrentPassword, adminNewPassword);
-                                    if (result.success) {
-                                        setAdminCurrentPassword('');
-                                        setAdminNewPassword('');
-                                        setAdminConfirmPassword('');
-                                        setAdminPasswordResult({ success: true, message: '비밀번호가 변경되었습니다.' });
-                                    } else {
-                                        setAdminPasswordResult({ success: false, message: result.error || '비밀번호 변경에 실패했습니다.' });
-                                    }
-                                    setIsAdminChangingPassword(false);
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <label htmlFor="new-club-name-input">새 동아리 이름</label>
+                            <input
+                                id="new-club-name-input"
+                                type="text"
+                                value={newClubName}
+                                onChange={(e) => setNewClubName(e.target.value)}
+                                placeholder="새 동아리 이름 입력"
+                                style={{
+                                    border: '1px solid rgba(245, 158, 11, 0.3)'
                                 }}
-                                disabled={isAdminChangingPassword || !adminCurrentPassword || !adminNewPassword || !adminConfirmPassword}
-                            >
-                                {isAdminChangingPassword ? '변경 중...' : '비밀번호 변경'}
-                            </button>
+                            />
                         </div>
+
+                        <button
+                            className="delete-club-btn"
+                            onClick={() => {
+                                if (!newClubName.trim()) {
+                                    alert('새 동아리 이름을 입력해주세요.');
+                                    return;
+                                }
+                                setUpdateClubConfirmName('');
+                                setUpdateClubError(null);
+                                setShowUpdateClubModal(true);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: '#d97706',
+                                color: '#ffffff',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            동아리 정보 수정
+                        </button>
+
+                        {/* 동아리 수정 확인 모달 */}
+                        {showUpdateClubModal && (
+                            <div
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.5)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 1000
+                                }}
+                                onClick={() => !isUpdatingClub && setShowUpdateClubModal(false)}
+                            >
+                                <div
+                                    style={{
+                                        background: 'var(--card-bg, #1f2937)',
+                                        borderRadius: '16px',
+                                        padding: '1.5rem',
+                                        maxWidth: '400px',
+                                        width: '90%',
+                                        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h3 style={{ margin: '0 0 1rem', color: '#d97706' }}>⚠️ 동아리 정보 수정 확인</h3>
+                                    <div style={{
+                                        background: 'rgba(245, 158, 11, 0.15)',
+                                        border: '1px solid #f59e0b',
+                                        borderRadius: '8px',
+                                        padding: '1rem',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#fef3c7' }}>
+                                            현재 이름: <strong style={{ color: '#fbbf24' }}>{clubName}</strong>
+                                        </p>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#fef3c7' }}>
+                                            새 이름: <strong style={{ color: '#fbbf24' }}>{newClubName}</strong>
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#fef3c7' }}>
+                                            수정을 확인하려면 현재 동아리 이름 <strong style={{ color: '#fbbf24' }}>"{clubName}"</strong>을(를) 정확히 입력해주세요.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={updateClubConfirmName}
+                                        onChange={(e) => setUpdateClubConfirmName(e.target.value)}
+                                        placeholder="현재 동아리 이름 입력"
+                                        disabled={isUpdatingClub}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: '8px',
+                                            border: '1px solid var(--glass-border)',
+                                            background: 'var(--glass-bg)',
+                                            color: 'var(--text-color)',
+                                            marginBottom: '0.75rem',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                    {updateClubError && (
+                                        <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: '0 0 0.75rem' }}>{updateClubError}</p>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button
+                                            onClick={() => setShowUpdateClubModal(false)}
+                                            disabled={isUpdatingClub}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '2px solid #6b7280',
+                                                background: 'rgba(107, 114, 128, 0.1)',
+                                                color: '#e5e7eb',
+                                                fontWeight: 600,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!clubId || updateClubConfirmName !== clubName) return;
+                                                setIsUpdatingClub(true);
+                                                setUpdateClubError(null);
+
+                                                const result = await updateClub(clubId, {
+                                                    name: newClubName
+                                                });
+
+                                                if (result.success && result.data) {
+                                                    setClubName(result.data.name);
+                                                    setShowUpdateClubModal(false);
+                                                    setNewClubName('');
+                                                    // 페이지 새로고침은 너무 과할 수 있으므로 상태만 업데이트
+                                                } else {
+                                                    setUpdateClubError(result.error || '동아리 정보 수정에 실패했습니다.');
+                                                }
+                                                setIsUpdatingClub(false);
+                                            }}
+                                            disabled={isUpdatingClub || updateClubConfirmName !== clubName}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                background: updateClubConfirmName === clubName ? '#d97706' : 'rgba(245, 158, 11, 0.3)',
+                                                color: 'white',
+                                                fontWeight: 600,
+                                                cursor: updateClubConfirmName === clubName ? 'pointer' : 'not-allowed',
+                                                opacity: isUpdatingClub ? 0.7 : 1
+                                            }}
+                                        >
+                                            {isUpdatingClub ? '수정 중...' : '정보 수정'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -1243,20 +1229,20 @@ export function MyPage() {
                                 >
                                     <h3 style={{ margin: '0 0 1rem', color: '#ef4444' }}>⚠️ 동아리 삭제 확인</h3>
                                     <div style={{
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid #ef4444',
                                         borderRadius: '8px',
                                         padding: '1rem',
                                         marginBottom: '1rem'
                                     }}>
-                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
-                                            <strong>주의:</strong> 이 작업은 되돌릴 수 없습니다.
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#fecaca' }}>
+                                            <strong style={{ color: '#f87171' }}>주의:</strong> 이 작업은 되돌릴 수 없습니다.
                                         </p>
-                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
-                                            동아리가 삭제되면 <strong>자동으로 로그아웃</strong>됩니다.
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#fecaca' }}>
+                                            동아리가 삭제되면 <strong style={{ color: '#f87171' }}>자동으로 로그아웃</strong>됩니다.
                                         </p>
-                                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                                            삭제를 확인하려면 동아리 이름 <strong>"{clubName}"</strong>을(를) 정확히 입력해주세요.
+                                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#fecaca' }}>
+                                            삭제를 확인하려면 동아리 이름 <strong style={{ color: '#f87171' }}>"{clubName}"</strong>을(를) 정확히 입력해주세요.
                                         </p>
                                     </div>
                                     <input
@@ -1287,9 +1273,10 @@ export function MyPage() {
                                                 flex: 1,
                                                 padding: '0.75rem',
                                                 borderRadius: '8px',
-                                                border: '1px solid var(--glass-border)',
-                                                background: 'transparent',
-                                                color: 'var(--text-color)',
+                                                border: '2px solid #6b7280',
+                                                background: 'rgba(107, 114, 128, 0.1)',
+                                                color: '#e5e7eb',
+                                                fontWeight: 600,
                                                 cursor: 'pointer'
                                             }}
                                         >
