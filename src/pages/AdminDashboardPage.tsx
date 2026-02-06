@@ -675,6 +675,7 @@ export function AdminDashboardPage() {
                 setError(result.error || '사진 업로드에 실패했습니다.');
             }
         } catch (err) {
+            console.error('Picture upload error:', err); 
             setError('이미지 처리 중 오류가 발생했습니다.');
         }
         setUploadingPicture(false);
