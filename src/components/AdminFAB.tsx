@@ -111,7 +111,6 @@ export function AdminFAB() {
                                                 <div className="apply-name">{app.name}</div>
                                                 <div className="apply-details">
                                                     <span>{app.email}</span>
-                                                    <span>학번: {app.student_id}</span>
                                                 </div>
                                             </div>
                                             <div className="apply-actions">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAssets, borrowItem, getPictureUrl, type Asset } from '@/api/client';
 import '@/styles/App.css';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -42,8 +43,14 @@ export function ItemListPage() {
         fetchAssets();
     }, [clubIdNum, isValidClubId]);
 
+    const { userType } = useAuth();
+
     // 대여 버튼 클릭 핸들러
     const handleRentClick = (asset: Asset) => {
+        if (userType === 2) {
+            alert('동아리 관리자의 승인이 필요합니다. 승인 후 대여가 가능합니다.');
+        return;
+    }
         setSelectedAsset(asset);
         const defaultDate = new Date();
         // max_rental_days가 설정되어 있으면 그 값을, 아니면 기본 7일

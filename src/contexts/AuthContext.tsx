@@ -12,6 +12,7 @@ interface AuthState {
     userName: string | null;
     userType: number | null;
     isAdmin: boolean;
+    permission: number | null;
 }
 
 interface AuthContextType extends AuthState {
@@ -26,12 +27,16 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-    const [authState, setAuthState] = useState<AuthState>(() => ({
-        isLoggedIn: !!getAccessToken(),
-        userName: getStoredUserName(),
-        userType: getStoredUserType(),
-        isAdmin: getStoredUserType() === 1,
-    }));
+    const [authState, setAuthState] = useState<AuthState>(() => {
+        const userType = getStoredUserType();
+        return {
+            isLoggedIn: !!getAccessToken(),
+            userName: getStoredUserName(),
+            userType: userType,
+            permission: userType, // userType 값을 permission으로도 활용
+            isAdmin: userType === 1,
+        };
+    });
 
     const refreshAuth = useCallback(() => {
         const token = getAccessToken();
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoggedIn: !!token,
             userName,
             userType,
+            permission: userType,
             isAdmin: userType === 1,
         });
     }, []);
@@ -51,6 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoggedIn: false,
             userName: null,
             userType: null,
+            permission: null,
             isAdmin: false,
         });
     }, []);

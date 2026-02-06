@@ -77,6 +77,7 @@ export function ReturnDetailPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const locationState = location.state as LocationState | null;
+    const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCompressing, setIsCompressing] = useState(false);
     const item = locationState?.item;
@@ -238,7 +239,8 @@ export function ReturnDetailPage() {
         }
 
         try {
-            setIsLocating(true); // 로딩 시작
+            setIsLocating(true);
+            setIsLocationVerified(false);
 
             const clubResult = await getClub(item.clubId);
             if (!clubResult.success || !clubResult.data) {
@@ -251,6 +253,7 @@ export function ReturnDetailPage() {
 
             if (!clubData.location_lat || !clubData.location_lng) {
                 console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
+                setIsLocationVerified(false);
                 setIsLocating(false);
                 return;
             }
@@ -274,6 +277,7 @@ export function ReturnDetailPage() {
                         alert(`⚠️ 거리가 너무 멉니다! (현재 거리: ${distance.toFixed(1)}m)\n15m 이내에서 다시 시도해주세요.`);
                     } else {
                         alert('✅ 위치 인증에 성공했습니다!');
+                        setIsLocationVerified(false);
                     }
                     setIsLocating(false);
                 },
@@ -373,14 +377,11 @@ export function ReturnDetailPage() {
                 />
                 <div className="card-actions" style={{ marginTop: '15px' }}>
                     <button
-                        // 인자 없이 호출하도록 수정
                         onClick={handleReturnItem}
                         className="primary-btn"
-                        // isLocating을 불리언(true/false)으로 관리한다면 아래와 같이 수정
                         disabled={isLocating}
                         style={{
                             width: '100%',
-                            // schedule.id 대신 item.id 사용
                             backgroundColor: isLocating ? '#999' : '#373F47',
                             color: 'white',
                             padding: '12px',
@@ -398,6 +399,8 @@ export function ReturnDetailPage() {
                                 <span className="spinner" />
                                 위치 확인 중...
                             </>
+                        ) : isLocationVerified ? (
+                            '✅ 위치 인증 완료'
                         ) : (
                             '📍 위치 인증하기'
                         )}
