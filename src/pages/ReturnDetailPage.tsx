@@ -134,13 +134,28 @@ export function ReturnDetailPage() {
         }
     };
 
+    const executeReturnAction = async (file: File) => {
+        if (!rentalId) return;
+        try {
+            const result = await returnItem(rentalId, file);
+            if (result.success) {
+                alert('반납이 성공적으로 완료되었습니다!');
+                navigate('/user/dashboard', { state: { tab: 'borrowed' }, replace: true });
+            }
+        } catch (error) {
+            console.error('반납 API 오류:', error);
+            alert('서버 전송 중 오류가 발생했습니다.');
+        }
+    };
+
+
     const handleReturnSubmit = async () => {
         if (!imagePreview || !selectedFile) {
             alert('반납 확인을 위해 물품 사진을 업로드해주세요.');
             return;
         }
 
-        if (!rentalId) {
+        if (!rentalId || !item) {
             alert('대여 정보를 불러올 수 없습니다.');
             return;
         }
@@ -238,7 +253,6 @@ export function ReturnDetailPage() {
 
         const clubData = clubResult.data;
 
-        // ✨ 수정 포인트: 위도 또는 경도 정보가 없는 경우 바로 성공 처리
         if (!clubData.location_lat || !clubData.location_lng) {
             console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
             setIsLocationValid(true); // OK 사인!
@@ -283,9 +297,6 @@ export function ReturnDetailPage() {
         setIsLocating(false);
     }
 };
-
-
-
 
 
     if (!item) {
