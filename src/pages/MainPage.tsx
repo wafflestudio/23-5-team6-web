@@ -1,92 +1,79 @@
 import { useNavigate } from 'react-router-dom';
-import { checkBackendStatus } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { UserDashboardPage } from '@/pages/UserDashboardPage';
-
 import '@/styles/App.css';
-import { useEffect } from 'react';
 
 export function MainPage() {
     const navigate = useNavigate();
-    const { isLoggedIn, isAdmin } = useAuth(); // AuthContext에서 권한 및 로그인 상태 확인
+    const { isLoggedIn, isAdmin } = useAuth(); //
 
-    // 서버 상태 초기 체크
-    useEffect(() => {
-        handleCheck();
-    }, []);
+    if (isLoggedIn && isAdmin) return <AdminDashboardPage />; //
+    if (isLoggedIn) return <UserDashboardPage />; //
 
-    const handleCheck = async () => {
-        try {
-            await checkBackendStatus(); // 백엔드 연결 확인
-        } catch {
-            // Handle error if needed
-        }
-    };
-
-    // 1. 관리자용 대시보드로 분기
-    if (isLoggedIn && isAdmin) {
-        return <AdminDashboardPage />;
-    }
-
-    // 2. 일반 사용자용 대시보드로 분기
-    if (isLoggedIn) {
-        return <UserDashboardPage />;
-    }
-
-    // 3. 비로그인 상태: 서비스 소개(랜딩) 페이지
     return (
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
             <main className="main-content">
-                {/* Hero Section */}
-                <section style={{ textAlign: 'center', padding: '4rem 0', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', borderRadius: '20px', marginBottom: '3rem' }}>
-                    <h1 style={{ fontSize: '3rem', fontWeight: '800', color: 'var(--gray-900)', marginBottom: '1.5rem' }}>
-                        바로바로(borrow) <span style={{ color: 'var(--primary-600)' }}></span>
+                {/* Hero Section: 브랜드 컨셉 강조 */}
+                <section style={{ 
+                    textAlign: 'center', 
+                    padding: '5rem 0', 
+                    background: 'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)', 
+                    borderRadius: '30px', 
+                    marginBottom: '4rem' 
+                }}>
+                    <h1 style={{ fontSize: '3.5rem', fontWeight: '900', color: '#334E68', marginBottom: '1.5rem' }}>
+                        동아리 관리를 <span style={{ color: '#5979BA' }}>바로바로</span>, <br/>
+                        필요한 물품을 <span style={{ color: '#8CCEE3' }}>borrow</span>!
                     </h1>
-                    <p style={{ fontSize: '1.25rem', color: 'var(--gray-600)', maxWidth: '600px', margin: '0 auto 2.5rem' }}>
-                        복잡한 동아리 비품 관리, 이제 사진 한 장과 QR로 스마트하게 해결하세요. 실시간 통계부터 자동 연체 알림까지 지원합니다.
+                    <p style={{ fontSize: '1.3rem', color: '#486581', maxWidth: '700px', margin: '0 auto 3rem', lineHeight: '1.6' }}>
+                        기다림 없는 스마트 대여 시스템. <br/>
+                        사진 한 장으로 반납하고, 클릭 한 번으로 관리 업무를 끝내세요.
                     </p>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <button onClick={() => navigate('/login')} className="primary-btn" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
-                            로그인하여 시작하기
+                    <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
+                        <button onClick={() => navigate('/login')} className="primary-btn" style={{ padding: '1.2rem 3rem', fontSize: '1.2rem', boxShadow: '0 4px 14px 0 rgba(89, 121, 186, 0.39)' }}>
+                            지금 바로 시작하기
                         </button>
-                        <button onClick={() => navigate('/signup')} className="primary-btn" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
-                            신규 회원가입
+                        <button onClick={() => navigate('/signup')} className="primary-btn" style={{ padding: '1.2rem 3rem', fontSize: '1.2rem', boxShadow: '0 4px 14px 0 rgba(89, 121, 186, 0.39)' }}>
+                            신규 가입하기
                         </button>
                     </div>
                 </section>
 
-                {/* 핵심 기능 Grid (기획안 반영) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '4rem' }}>
-                    <div className="card" style={{ padding: '2rem', borderTop: '5px solid #5979BA' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📸</div>
-                        <h3 style={{ marginBottom: '0.8rem' }}>셀프 대여/반납</h3>
-                        <p style={{ color: 'var(--gray-500)', fontSize: '0.95rem' }}>
-                            사진 인증을 통한 투명한 반납 시스템. 위치 기반 체크인으로 분실 걱정 없는 자산 관리를 경험하세요.
+                {/* 핵심 기능 Grid: '바로' 시리즈 컨셉 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
+                    <div className="card" style={{ padding: '2.5rem', borderTop: '6px solid #5979BA', borderRadius: '15px' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📸</div>
+                        <h3 style={{ marginBottom: '1rem', color: '#102A43' }}>바로 찍고, 반납</h3>
+                        <p style={{ color: '#627D98', fontSize: '1rem', lineHeight: '1.6' }}>
+                            복잡한 절차 없이 <strong>인증 사진</strong>만 찍으세요. 위치 기반 시스템이 반납을 바로 처리합니다.
                         </p>
                     </div>
-                    <div className="card" style={{ padding: '2rem', borderTop: '5px solid #10b981' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📊</div>
-                        <h3 style={{ marginBottom: '0.8rem' }}>인사이트 통계</h3>
-                        <p style={{ color: 'var(--gray-500)', fontSize: '0.95rem' }}>
-                            자산별 평균 대여 기간과 이용 빈도를 자동으로 집계합니다. 효율적인 비품 교체 주기를 파악하세요.
+
+                    <div className="card" style={{ padding: '2.5rem', borderTop: '6px solid #10b981', borderRadius: '15px' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📊</div>
+                        <h3 style={{ marginBottom: '1rem', color: '#102A43' }}>바로 확인하는 통계</h3>
+                        <p style={{ color: '#627D98', fontSize: '1rem', lineHeight: '1.6' }}>
+                            우리 동아리에서 가장 인기 있는 비품은? <strong>실시간 데이터</strong>로 대여 현황을 바로 파악하세요.
                         </p>
                     </div>
-                    <div className="card" style={{ padding: '2rem', borderTop: '5px solid #f59e0b' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📁</div>
-                        <h3 style={{ marginBottom: '0.8rem' }}>일괄 데이터 관리</h3>
-                        <p style={{ color: 'var(--gray-500)', fontSize: '0.95rem' }}>
-                            Excel/CSV 업로드와 다운로드를 지원하여 대규모 비품도 한 번에 등록하고 관리 대장을 출력할 수 있습니다.
+
+                    <div className="card" style={{ padding: '2.5rem', borderTop: '6px solid #f59e0b', borderRadius: '15px' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📁</div>
+                        <h3 style={{ marginBottom: '1rem', color: '#102A43' }}>바로 등록하는 데이터</h3>
+                        <p style={{ color: '#627D98', fontSize: '1rem', lineHeight: '1.6' }}>
+                            수많은 자산도 <strong>Excel 업로드</strong>로 한 번에. 관리 대장 정리가 더 이상 고통스럽지 않습니다.
                         </p>
                     </div>
-                    <div className="card" style={{ padding: '2rem', borderTop: '5px solid #8CCEE3' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📨</div>
-                        <h3 style={{ marginBottom: '0.8rem' }}>연체 메일링 시스템</h3>
-                        <p style={{ color: 'var(--gray-500)', fontSize: '0.95rem' }}>
-                            연체 발생 시 시스템 내에서 <strong>클릭 한 번으로 안내 메일을 발송</strong>하여 미반납 자산을 효율적으로 관리할 수 있습니다.
+
+                    <div className="card" style={{ padding: '2.5rem', borderTop: '6px solid #8CCEE3', borderRadius: '15px' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📧</div>
+                        <h3 style={{ marginBottom: '1rem', color: '#102A43' }}>바로 보내는 안내</h3>
+                        <p style={{ color: '#627D98', fontSize: '1rem', lineHeight: '1.6' }}>
+                            연체자에게 일일이 연락하지 마세요. 시스템에서 <strong>클릭 한 번으로</strong> 안내 메일을 바로 발송합니다.
                         </p>
                     </div>
-                </div>  
+                </div>
             </main>
         </div>
     );
