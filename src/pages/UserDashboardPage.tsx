@@ -167,109 +167,20 @@ export function UserDashboardPage() {
         }
     };
 
-    // Haversine 공식으로 두 GPS 좌표 사이 거리 계산 (미터 단위)
-    const calculateDistance = (
-        lat1: number, lng1: number,
-        lat2: number, lng2: number
-    ): number => {
-        const R = 6371000; // 지구 반지름 (미터)
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng / 2) ** 2;
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    };
-
     // 반납 핸들러 - ReturnDetailPage로 이동 (사진 업로드 필수)
-    const handleReturnItem = async (schedule: Schedule) => {
-        // 동아리 위치 정보 가져오기
-        const clubResult = await getClub(schedule.club_id);
-        if (!clubResult.success || !clubResult.data) {
-            alert('동아리 정보를 불러올 수 없습니다.');
-            return;
-        }
+    const handleReturnItem = (schedule: Schedule) => {
+        const targetPath = `/return/detail/${schedule.id}`; 
 
-        const clubData = clubResult.data;
+        const itemInfo = {
+            id: schedule.id,
+            clubId: schedule.club_id, // 위치 조회를 위해 club_id 추가 전달
+            name: `물품 ID: ${schedule.asset_id}`,
+            clubName: clubNames[schedule.club_id] || '알 수 없음',
+            borrowedAt: formatDate(schedule.start_date),
+            expectedReturn: schedule.end_date ? formatDate(schedule.end_date) : '미정',
+        };
 
-        // 동아리 위치가 설정되어 있는 경우 GPS 검사
-        if (clubData.location_lat && clubData.location_lng) {
-            // GPS 지원 확인
-            if (!navigator.geolocation) {
-                alert('이 브라우저에서는 GPS를 지원하지 않습니다.');
-                return;
-            }
-
-            // 동아리 위치 (API는 degrees * 1,000,000 형식)
-            const clubLat = clubData.location_lat / 1000000;
-            const clubLng = clubData.location_lng / 1000000;
-
-            // 현재 GPS 위치 가져오기
-            return new Promise<void>((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-
-                        // 거리 계산
-                        const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
-
-                        if (distance > 15) {
-                            alert(`⚠️ 동아리 위치에서 너무 멀리 있습니다.\n\n현재 거리: ${distance.toFixed(1)}m\n허용 거리: 15m 이내\n\n동아리 위치 근처에서 반납해주세요.`);
-                            resolve();
-                            return;
-                        }
-
-                        // 15m 이내: ReturnDetailPage로 이동
-                        navigate(`/return/${schedule.id}`, {
-                            state: {
-                                item: {
-                                    id: schedule.id,
-                                    name: `물품 ID: ${schedule.asset_id}`,
-                                    clubName: clubNames[schedule.club_id] || '알 수 없음',
-                                    borrowedAt: formatDate(schedule.start_date),
-                                    expectedReturn: schedule.end_date ? formatDate(schedule.end_date) : '미정',
-                                },
-                                location: { lat: userLat, lng: userLng }
-                            }
-                        });
-                        resolve();
-                    },
-                    (error: GeolocationPositionError) => {
-                        console.error('GPS error:', error);
-                        let errorMessage = '위치를 가져올 수 없습니다.';
-                        switch (error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage = '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage = '위치 정보를 사용할 수 없습니다. GPS 신호를 확인해주세요.';
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage = '위치 요청 시간이 초과되었습니다. 다시 시도해주세요.';
-                                break;
-                        }
-                        alert(errorMessage);
-                        resolve();
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            });
-        } else {
-            // 동아리 위치가 설정되지 않은 경우: GPS 검사 없이 바로 이동
-            navigate(`/return/${schedule.id}`, {
-                state: {
-                    item: {
-                        id: schedule.id,
-                        name: `물품 ID: ${schedule.asset_id}`,
-                        clubName: clubNames[schedule.club_id] || '알 수 없음',
-                        borrowedAt: formatDate(schedule.start_date),
-                        expectedReturn: schedule.end_date ? formatDate(schedule.end_date) : '미정',
-                    }
-                }
-            });
-        }
+        navigate(targetPath, { state: { item: itemInfo } });
     };
 
     const formatDate = (dateStr: string) => {

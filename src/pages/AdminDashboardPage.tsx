@@ -26,8 +26,10 @@ function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClic
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
-        const currentElement = cardRef.current; 
-        if (!currentElement) return;
+        const node = cardRef.current; 
+        if (!node) return;
+        
+        if (!node) return;
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -45,8 +47,8 @@ function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClic
         }
 
         return () => {
-            if (cardRef.current) {
-                observer.unobserve(cardRef.current);
+            if (node) {
+                observer.unobserve(node);
             }
             observer.disconnect();
         };
@@ -253,7 +255,7 @@ export function AdminDashboardPage() {
             const mainPic = picturesResult.data.find(p => p.is_main);
             setAssetMainPictures(prev => ({ ...prev, [assetId]: mainPic ? mainPic.id : null }));
         }
-    }, [assetMainPictures]);
+    }, []);
 
     // 대여 현황 가져오기 함수
     const fetchSchedules = async (clubId: number, status?: string) => {

@@ -30,7 +30,7 @@ function App() {
           <Route path="/clubs/:clubId/items" element={<ItemListPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/user/dashboard" element={<UserDashboardPage />} />
-          <Route path="/return/detail/:itemId" element={<ReturnDetailPage />} />
+          <Route path="/return/detail/:item_id" element={<ReturnDetailPage />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
         </Routes>
