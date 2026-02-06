@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, getAssetPictures, getPictureUrl, type ClubMember, type Schedule } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, getAssetPictures, getPictureUrl, type ClubMember, type Schedule, type Asset, type AssetPicture } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -86,12 +86,12 @@ export function UserDashboardPage() {
                     ]);
 
                     if (assetResult.success && assetResult.data) {
-                    await Promise.all(assetResult.data.map(async (asset: any) => {
+                    await Promise.all(assetResult.data.map(async (asset: Asset) => {
                         newAssetNames[asset.id] = asset.name;
                         if (newAssetImages[asset.id]) return;
                         const picsResult = await getAssetPictures(asset.id);
                         if (picsResult.success && picsResult.data) {
-                            const mainPic = picsResult.data.find((p: any) => p.is_main) || picsResult.data[0];
+                            const mainPic = picsResult.data.find((p: AssetPicture) => p.is_main) || picsResult.data[0];
                             if (mainPic && mainPic.id) {
                                 newAssetImages[asset.id] = getPictureUrl(mainPic.id);
                                 } else {
