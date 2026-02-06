@@ -13,7 +13,7 @@ export function MainPage() {
 
     return (
         /* 컨테이너 패딩을 모바일 환경(1rem)과 데스크톱(2rem)에 맞춰 유연하게 조정 */
-        <div className="container" style={{ 
+        <div className="auth-container" style={{ 
             maxWidth: '1200px', 
             margin: '0 auto', 
             padding: '1rem', // 모바일 기본 패딩 축소
@@ -39,6 +39,7 @@ export function MainPage() {
                     </h1>
                     <p style={{ 
                         fontSize: 'clamp(1rem, 4vw, 1.2rem)', // 텍스트 크기 조절
+                        fontWeight: '700',
                         color: '#486581', 
                         maxWidth: '600px', 
                         margin: '0 auto 2rem', 
@@ -91,7 +92,7 @@ export function MainPage() {
                     <div className="card" style={{ padding: '1.5rem', borderTop: '6px solid #5979BA', borderRadius: '15px' }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📸</div>
                         <h3 style={{ marginBottom: '0.5rem', color: '#102A43' }}>바로 찍고, 반납</h3>
-                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6', wordBreak: 'keep-all'}}>
                             복잡한 절차 없이 <strong>인증 사진</strong>만 찍으세요. 위치 기반 시스템이 반납을 바로 처리합니다.
                         </p>
                     </div>
@@ -99,7 +100,7 @@ export function MainPage() {
                     <div className="card" style={{ padding: '1.5rem', borderTop: '6px solid #10b981', borderRadius: '15px' }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
                         <h3 style={{ marginBottom: '0.5rem', color: '#102A43' }}>바로 확인하는 통계</h3>
-                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6', wordBreak: 'keep-all' }}>
                             우리 동아리 인기 비품은? <strong>실시간 데이터</strong>로 대여 현황을 파악하세요.
                         </p>
                     </div>
@@ -107,7 +108,7 @@ export function MainPage() {
                     <div className="card" style={{ padding: '1.5rem', borderTop: '6px solid #f59e0b', borderRadius: '15px' }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📁</div>
                         <h3 style={{ marginBottom: '0.5rem', color: '#102A43' }}>바로 등록하는 데이터</h3>
-                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6', wordBreak: 'keep-all' }}>
                             수많은 자산도 <strong>Excel 업로드</strong>로 한 번에. 관리가 더 이상 고통스럽지 않습니다.
                         </p>
                     </div>
@@ -115,7 +116,7 @@ export function MainPage() {
                     <div className="card" style={{ padding: '1.5rem', borderTop: '6px solid #8CCEE3', borderRadius: '15px' }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📧</div>
                         <h3 style={{ marginBottom: '0.5rem', color: '#102A43' }}>바로 보내는 안내</h3>
-                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                        <p style={{ color: '#627D98', fontSize: '0.95rem', lineHeight: '1.6', wordBreak: 'keep-all' }}>
                             연체자에게 일일이 연락하지 마세요. <strong>클릭 한 번으로</strong> 안내 메일을 발송합니다.
                         </p>
                     </div>
