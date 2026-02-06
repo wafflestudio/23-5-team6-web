@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getAssets, borrowItem, type Asset } from '@/api/client';
+import { getAssets, borrowItem, getPictureUrl, type Asset } from '@/api/client';
 import '@/styles/App.css';
 
 const ITEMS_PER_PAGE = 10;
@@ -115,8 +115,16 @@ export function ItemListPage() {
                                         onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <div className="item-image">
-                                            <span style={{ fontSize: '2rem' }}>📦</span>
+                                        <div className="item-image" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {asset.main_picture ? (
+                                                <img 
+                                                    src={getPictureUrl(asset.main_picture)} 
+                                                    alt={asset.name} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <span style={{ fontSize: '2rem' }}>📦</span>
+                                            )}
                                         </div>
                                         <div className="item-content">
                                             <div className="item-header">
