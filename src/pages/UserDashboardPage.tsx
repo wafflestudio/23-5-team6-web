@@ -10,6 +10,20 @@ interface LocationState {
     tab?: TabType;
 }
 
+export const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) {
+        return '날짜 정보 없음';
+    }
+    return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
 export function UserDashboardPage() {
     const navigate = useNavigate();
     const location = useLocation();

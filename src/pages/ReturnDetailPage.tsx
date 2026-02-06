@@ -1,11 +1,14 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { returnItem } from '@/api/client';
+import { returnItem, type Schedule } from '@/api/client';
+import { getClub } from '@/api/client';
+import { formatDate } from '@/pages/UserDashboardPage';
 import '@/styles/App.css';
 
 
 interface ItemInfo {
     id: number;
+    clubId: number;
     name: string;
     clubName: string;
     borrowedAt: string;
@@ -78,6 +81,8 @@ export function ReturnDetailPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCompressing, setIsCompressing] = useState(false);
     const item = locationState?.item;
+    const [isLocating, setIsLocating] = useState(false);
+    const [isLocationValid, setIsLocationValid] = useState(false);
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -142,27 +147,146 @@ export function ReturnDetailPage() {
 
         try {
             setIsSubmitting(true);
-            
-            // client.ts에 정의된 returnItem 호출
-            const result = await returnItem(rentalId, selectedFile);
 
-            if (result.success) {
-                // result.data에 API 명세에 적힌 ReturnResponse가 담겨옵니다.
-                console.log('반납 완료 데이터:', result.data);
-                
-                // 성공 시 대여 목록 탭으로 이동
-                navigate('/user/dashboard', { 
-                    state: { tab: 'borrowed' }, 
-                    replace: true 
-                });
+            // 1. 동아리 정보 조회 (GPS 좌표 확인용)
+            const clubResult = await getClub(item.clubId); //
+            if (!clubResult.success || !clubResult.data) {
+                alert('동아리 위치 정보를 확인할 수 없습니다.');
+                setIsSubmitting(false);
+                return;
             }
-            // 에러 처리는 client.ts의 showNotification에서 이미 처리됨
+
+            const clubData = clubResult.data;
+
+            // 동아리 GPS 정보가 없는 경우 사진만으로 반납 진행
+            if (!clubData.location_lat || !clubData.location_lng) {
+                await executeReturnAction(selectedFile);
+                return;
+            }
+
+            const clubLat = clubData.location_lat / 1000000;
+            const clubLng = clubData.location_lng / 1000000;
+
+            // 2. 현재 사용자 위치 조회 및 거리 비교
+            if (!navigator.geolocation) {
+                alert('이 브라우저에서는 GPS를 지원하지 않습니다.');
+                setIsSubmitting(false);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
+
+                    // 15m 거리 제한 검증
+                    if (distance > 15) {
+                        alert(`⚠️ 위치 인증 실패: 동아리방에서 너무 멉니다.\n현재 거리: ${distance.toFixed(1)}m (제한: 15m)`);
+                        setIsSubmitting(false);
+                        return;
+                    }
+
+                    // 3. 최종 반납 진행
+                    await executeReturnAction(selectedFile);
+                },
+                (error) => {
+                    console.error('GPS 에러:', error);
+                    alert('위치 정보를 가져올 수 없습니다. GPS 권한을 확인해주세요.');
+                    setIsSubmitting(false);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+
         } catch (error) {
-            console.error('Return submission error:', error);
-        } finally {
+            console.error('제출 중 에러:', error);
             setIsSubmitting(false);
         }
     };
+
+    // Haversine 공식으로 두 GPS 좌표 사이 거리 계산 (미터 단위)
+    const calculateDistance = (
+        lat1: number, lng1: number,
+        lat2: number, lng2: number
+    ): number => {
+        const R = 6371000; // 지구 반지름 (미터)
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    // src/pages/ReturnDetailPage.tsx 내부
+    const handleReturnItem = async () => {
+    if (!rentalId || !item) {
+        alert('대여 정보를 확인할 수 없습니다.');
+        return;
+    }
+
+    try {
+        setIsLocating(true); // 로딩 시작
+
+        const clubResult = await getClub(item.clubId);
+        if (!clubResult.success || !clubResult.data) {
+            alert('동아리 정보를 불러올 수 없습니다.');
+            setIsLocating(false);
+            return;
+        }
+
+        const clubData = clubResult.data;
+
+        // ✨ 수정 포인트: 위도 또는 경도 정보가 없는 경우 바로 성공 처리
+        if (!clubData.location_lat || !clubData.location_lng) {
+            console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
+            setIsLocationValid(true); // OK 사인!
+            setIsLocating(false);
+            return;
+        }
+
+        // 위치 정보가 있는 경우에만 GPS 검사 진행
+        if (!navigator.geolocation) {
+            alert('GPS를 지원하지 않는 브라우저입니다.');
+            setIsLocating(false);
+            return;
+        }
+
+        const clubLat = clubData.location_lat / 1000000;
+        const clubLng = clubData.location_lng / 1000000;
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude: userLat, longitude: userLng } = position.coords;
+                const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
+
+                if (distance > 15) {
+                    alert(`⚠️ 거리가 너무 멉니다! (현재 거리: ${distance.toFixed(1)}m)\n15m 이내에서 다시 시도해주세요.`);
+                    setIsLocationValid(false);
+                } else {
+                    alert('✅ 위치 인증에 성공했습니다!');
+                    setIsLocationValid(true); // OK 사인!
+                }
+                setIsLocating(false);
+            },
+            (error) => {
+                console.error('GPS 에러:', error);
+                alert('위치 정보를 가져올 수 없습니다. 권한을 확인해주세요.');
+                setIsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+
+    } catch (err) {
+        console.error(err);
+        setIsLocating(false);
+    }
+};
+
+
+
+
 
     if (!item) {
         return (
@@ -236,7 +360,38 @@ export function ReturnDetailPage() {
                     style={{ display: 'none' }}
                     disabled={isSubmitting || isCompressing}
                 />
-
+                <div className="card-actions" style={{ marginTop: '15px' }}>
+                    <button
+                        // 인자 없이 호출하도록 수정
+                        onClick={handleReturnItem} 
+                        className="primary-btn"
+                        // isLocating을 불리언(true/false)으로 관리한다면 아래와 같이 수정
+                        disabled={isLocating} 
+                        style={{
+                            width: '100%',
+                            // schedule.id 대신 item.id 사용
+                            backgroundColor: isLocating ? '#999' : '#373F47',
+                            color: 'white',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            cursor: isLocating ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        {isLocating ? (
+                            <>
+                                <span className="spinner" />
+                                위치 확인 중...
+                            </>
+                        ) : (
+                            '📍 위치 인증하기'
+                        )}
+                    </button>
+                </div>
                 <button
                     className="submit-btn"
                     onClick={handleReturnSubmit}
