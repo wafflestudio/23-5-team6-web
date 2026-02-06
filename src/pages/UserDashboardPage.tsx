@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, type ClubMember, type Schedule } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, getAssetPictures, getPictureUrl, type ClubMember, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -27,6 +27,7 @@ export function UserDashboardPage() {
     const [clubsLoading, setClubsLoading] = useState(true);
     const [clubNames, setClubNames] = useState<Record<number, string>>({});
     const [assetNames, setAssetNames] = useState<Record<number, string>>({});
+    const [assetImages, setAssetImages] = useState<Record<number, string>>({});
 
     // 대여 항목 상태
     const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -73,8 +74,8 @@ export function UserDashboardPage() {
 
             setSchedulesLoading(true);
             const allSchedules: Schedule[] = [];
-
             const newAssetNames: Record<number, string> = { ...assetNames };
+            const newAssetImages: Record<number, string> = { ...assetImages };
 
             // 모든 동아리 순회하며 스케줄(대여이력) 조회 (개별 실패 시에도 나머지 결과 사용)
             const scheduleResults = await Promise.allSettled(
@@ -83,6 +84,22 @@ export function UserDashboardPage() {
                         getSchedules(club.club_id, { status: statusFilter || undefined }),
                         getAssets(club.club_id)
                     ]);
+
+                    if (assetResult.success && assetResult.data) {
+                    await Promise.all(assetResult.data.map(async (asset: any) => {
+                        newAssetNames[asset.id] = asset.name;
+                        if (newAssetImages[asset.id]) return;
+                        const picsResult = await getAssetPictures(asset.id);
+                        if (picsResult.success && picsResult.data) {
+                            const mainPic = picsResult.data.find((p: any) => p.is_main) || picsResult.data[0];
+                            if (mainPic && mainPic.id) {
+                                newAssetImages[asset.id] = getPictureUrl(mainPic.id);
+                                } else {
+                                newAssetImages[asset.id] = ''; 
+                            }
+                        }
+                    }));
+                }
                     return { scheduleResult, assetResult };
                 })
             );
@@ -97,6 +114,7 @@ export function UserDashboardPage() {
                             newAssetNames[asset.id] = asset.name;
                         });
                         setAssetNames(newAssetNames);
+                        setAssetImages(newAssetImages);
                         setSchedules(allSchedules);
                         setSchedulesLoading(false);
                     }
@@ -187,8 +205,9 @@ export function UserDashboardPage() {
 
         const itemInfo = {
             id: schedule.id,
-            clubId: schedule.club_id, // 위치 조회를 위해 club_id 추가 전달
+            clubId: schedule.club_id,
             name: assetNames[schedule.asset_id] || `물품 ID: ${schedule.asset_id}`,
+            image: assetImages[schedule.asset_id] || '',
             clubName: clubNames[schedule.club_id] || '알 수 없음',
             borrowedAt: formatDate(schedule.start_date),
             expectedReturn: schedule.end_date ? formatDate(schedule.end_date) : '미정',
@@ -319,9 +338,17 @@ export function UserDashboardPage() {
                                     return (
                                         <div key={schedule.id} className="asset-card">
                                             <div className="asset-image">
-                                                <div className="asset-image-placeholder">
-                                                    {isInUse ? '📱' : (isReturned ? '✅' : '📦')}
-                                                </div>
+                                                {assetImages[schedule.asset_id] ? (
+                                                    <img 
+                                                        src={assetImages[schedule.asset_id]} 
+                                                        alt="물품 사진" 
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                                                    />
+                                                ) : (
+                                                    <div className="asset-image-placeholder">
+                                                        {isInUse ? '📱' : (isReturned ? '✅' : '📦')}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="asset-info">
                                                 <h3 className="asset-name">
