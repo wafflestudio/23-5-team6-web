@@ -340,7 +340,7 @@ export function UserDashboardPage() {
                                                     />
                                                 ) : (
                                                     <div className="asset-image-placeholder">
-                                                        {isInUse ? '📱' : (isReturned ? '✅' : '📦')}
+                                                        {isInUse ? '📦' : (isReturned ? '✅' : '📦')}
                                                     </div>
                                                 )}
                                             </div>
