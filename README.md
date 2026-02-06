@@ -28,7 +28,7 @@
 | :--- | :---: | :--- |
 | **김찬우** | Backend | - JWT 기반 인증 시스템 구축 (Access/Refresh Token, argon2 해싱)<br>- 대여/멤버 CRUD API 및 권한 관리 로직 설계<br>- 통계 API 개발 및 CSV 대량 업로드 시스템 구현<br>- DB 스키마 설계 및 CI/CD 파이프라인 구축 |
 | **남현석** | Backend | - 자산 CRUD API 및 자산 이미지 업로드 기능 구현<br>- 대여/반납 로직 내 동시 요청 충돌 방지(Concurrency Control) 처리<br>- AWS 기반 인프라 구축(EC2, RDS) 및 서비스 환경 최적화<br>- 도메인 구매 및 DNS 설정을 통한 서비스 연결 |
-| **전동주** | Backend | - 동아리 CRUD 및 하버사인 공식을 활용한 위치 정보 처리 개발<br>- 운영자 전용 회원가입/로그인 및 관리 기능 백엔드 설계<br>- 구글 소셜 로그인 (Auth Code Flow + PKCE) 보안 로직 구현 |
+| **전동주** | Backend | - 동아리 CRUD 및 Haversine 공식을 활용한 위치 정보 처리 개발<br>- 운영자 전용 회원가입/로그인 및 관리 기능 백엔드 설계<br>- 구글 소셜 로그인 (Auth Code Flow + PKCE) 보안 로직 구현 |
 | **맹준호** | Frontend | - React 기반 프론트엔드 아키텍처 및 공통 컴포넌트 설계<br>- 소셜 로그인 및 GPS 위치 기반 반납 인터페이스 구현<br>- AWS Lambda 연동을 통한 연체 안내 이메일 전송 시스템 구축 |
 | **임효리** | Frontend | - 엑셀 기반 자산 업로드 및 다운로드 기능 구현 <br>- 자산 대여 반납 기능 구현 <br>  |
 
@@ -56,8 +56,9 @@
 
 ### ⚙️ Backend
 - **Framework**: FastAPI (Python 3.12)
-- **ORM & DB**: SQLAlchemy, Alembic, MySQL
-- **Auth**: Authlib (OAuth2/OpenID Connect), Pydantic
+- **ORM & DB**: SQLAlchemy, Alembic, pymysql
+- **Authentication**: Authlib (OAuth2/OpenID Connect), Pydantic
+- **Libraries**: openpyxl (엑셀 파싱), python-multipart (파일 업로드)
 
 ### ☁️ Infra & DevOps
 - **Infrastructure**: AWS (EC2, RDS, S3, CloudFront)
@@ -67,6 +68,7 @@
 ---
 
 ## 6. 🖼️ 프로젝트 뷰 (Project View)
+서비스의 핵심 사용자 경험을 11개의 주요 화면으로 구성했습니다.
 1. **랜딩 페이지**: 서비스 핵심 가치 및 사용법 소개
 2. **운영자 회원가입**: 동아리 생성 및 관리 권한 부여
 3. **로그인**: 구글 OAuth 및 일반 계정 통합 로그인
@@ -75,6 +77,6 @@
 6. **동아리 및 물품 목록**: 대여 가능 물품 실시간 조회
 7. **사용자 대여 항목**: 개인 대여 현황 및 이력 관리
 8. **운영자 자산 관리**: 비품 상태 모니터링 대시보드
-9. **운영자 물품 추가**: 단일 등록 및 엑셀 대량 등록(Modal)
+9. **운영자 물품 추가**: 단일 등록 및 엑셀 대량 등록
 10. **운영자 대여 현황**: 전체 연체 및 반납 현황 파악
 11. **운영자 멤버 관리**: 멤버 권한 조정 및 관리
