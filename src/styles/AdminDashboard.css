@@ -102,6 +102,7 @@
     display: flex;
     gap: 3px;
     align-items: right;
+    word-break: keep-all;
 }
 
 .upload-btn {
@@ -120,6 +121,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    word-break: keep-all;
 }
 
 .member-approve-btn:hover {
