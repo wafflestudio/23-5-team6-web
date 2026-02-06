@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, getAssetPictures, getPictureUrl, type ClubMember, type Schedule, type Asset, type AssetPicture } from '@/api/client';
+import { applyToClub, getClubMembers, getClub, getSchedules, deleteClubMember, getAssets, getPictureUrl, type ClubMember, type Schedule, type Asset } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
 
@@ -86,43 +86,35 @@ export function UserDashboardPage() {
                     ]);
 
                     if (assetResult.success && assetResult.data) {
-                    await Promise.all(assetResult.data.map(async (asset: Asset) => {
-                        newAssetNames[asset.id] = asset.name;
-                        if (newAssetImages[asset.id]) return;
-                        const picsResult = await getAssetPictures(asset.id);
-                        if (picsResult.success && picsResult.data) {
-                            const mainPic = picsResult.data.find((p: AssetPicture) => p.is_main) || picsResult.data[0];
-                            if (mainPic && mainPic.id) {
-                                newAssetImages[asset.id] = getPictureUrl(mainPic.id);
-                                } else {
+                        // 각 자산을 순회하며 이름과 대표 사진 URL을 매핑합니다.
+                        assetResult.data.forEach((asset: Asset) => {
+                            newAssetNames[asset.id] = asset.name;
+                            
+                            // API 추가 호출 없이 main_picture ID가 있으면 바로 URL 생성
+                            if (asset.main_picture) {
+                                newAssetImages[asset.id] = getPictureUrl(asset.main_picture);
+                            } else {
                                 newAssetImages[asset.id] = ''; 
                             }
-                        }
-                    }));
-                }
-                    return { scheduleResult, assetResult };
+                        });
+                    }
+                    return { scheduleResult };
                 })
             );
+
             scheduleResults.forEach((settledResult) => {
                 if (settledResult.status === 'fulfilled') {
                     const result = settledResult.value;
                     if (result.scheduleResult.success && result.scheduleResult.data) {
                         allSchedules.push(...result.scheduleResult.data.schedules);
                     }
-                    if (result.assetResult.success && result.assetResult.data) {
-                        result.assetResult.data.forEach(asset => {
-                            newAssetNames[asset.id] = asset.name;
-                        });
-                        setAssetNames(newAssetNames);
-                        setAssetImages(newAssetImages);
-                        setSchedules(allSchedules);
-                        setSchedulesLoading(false);
-                    }
                 }
             });
 
-            // 시작일 기준 내림차순 정렬 (최신순)
             allSchedules.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+            
+            setAssetNames(newAssetNames);
+            setAssetImages(newAssetImages);
             setSchedules(allSchedules);
             setSchedulesLoading(false);
         };
@@ -338,11 +330,13 @@ export function UserDashboardPage() {
                                     return (
                                         <div key={schedule.id} className="asset-card">
                                             <div className="asset-image">
+                                                {/* 최적화된 assetImages 맵 사용 (main_picture ID 기반) */}
                                                 {assetImages[schedule.asset_id] ? (
                                                     <img 
                                                         src={assetImages[schedule.asset_id]} 
                                                         alt="물품 사진" 
                                                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                                                        loading="lazy" 
                                                     />
                                                 ) : (
                                                     <div className="asset-image-placeholder">
@@ -352,7 +346,7 @@ export function UserDashboardPage() {
                                             </div>
                                             <div className="asset-info">
                                                 <h3 className="asset-name">
-                                                {assetNames[schedule.asset_id] || `물품 ID: ${schedule.asset_id}`}
+                                                    {assetNames[schedule.asset_id] || `물품 ID: ${schedule.asset_id}`}
                                                 </h3>
                                                 <p className="asset-detail">
                                                     동아리: {clubNames[schedule.club_id] || '로딩중...'}

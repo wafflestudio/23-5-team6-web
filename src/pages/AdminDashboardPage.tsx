@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getClubMembers, deleteClubMember, addAsset, getAssets, updateAsset, deleteAsset, getMyClubs, uploadExcelAssets, getAssetStatistics, getAssetPictures, addAssetPicture, setMainPicture, deleteAssetPicture, getPictureUrl, getSchedules, type ClubMember, type Asset, type AssetStatistics, type AssetPicture, type Schedule } from '@/api/client';
 import '@/styles/App.css';
 import '@/styles/AdminDashboard.css';
@@ -11,8 +11,6 @@ type TabType = 'assets' | 'rentals' | 'members';
 interface LazyAssetCardProps {
     asset: Asset;
     isExpanded: boolean;
-    mainPictureId: number | null | undefined;
-    onLoadPicture: (assetId: number) => void;
     onClick: () => void;
     editingAsset: { name: string; description: string; quantity: number; location: string; max_rental_days: number | null } | null;
     statsLoading: boolean;
@@ -21,52 +19,17 @@ interface LazyAssetCardProps {
     onEditClick: () => void;
 }
 
-function LazyAssetCard({ asset, isExpanded, mainPictureId, onLoadPicture, onClick, editingAsset, statsLoading, statsError, assetStats, onEditClick }: LazyAssetCardProps) {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [hasLoaded, setHasLoaded] = useState(false);
-
-    useEffect(() => {
-        const node = cardRef.current; 
-        if (!node) return;
-        
-        if (!node) return;
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting && !hasLoaded) {
-                        setHasLoaded(true);
-                        onLoadPicture(asset.id);
-                    }
-                });
-            },
-            { rootMargin: '100px' } // 100px 전에 미리 로드
-        );
-
-        if (cardRef.current) {
-            observer.observe(cardRef.current);
-        }
-
-        return () => {
-            if (node) {
-                observer.unobserve(node);
-            }
-            observer.disconnect();
-        };
-    }, [asset.id, hasLoaded, onLoadPicture]);
-
+function LazyAssetCard({ asset, isExpanded, onClick, editingAsset, statsLoading, statsError, assetStats, onEditClick }: LazyAssetCardProps) {
     return (
-        <div
-            ref={cardRef}
-            className={`asset-card ${isExpanded ? 'expanded' : ''}`}
-            onClick={onClick}
-        >
+        <div className={`asset-card ${isExpanded ? 'expanded' : ''}`} onClick={onClick}>
             <div className="asset-card-header">
                 <div className="asset-image">
-                    {mainPictureId ? (
+                    {asset.main_picture ? (
                         <img
-                            src={getPictureUrl(mainPictureId)}
+                            src={getPictureUrl(asset.main_picture)}
                             alt={asset.name}
                             className="asset-main-picture"
+                            loading="lazy"
                         />
                     ) : (
                         <div className="asset-image-placeholder">📦</div>
@@ -202,9 +165,6 @@ export function AdminDashboardPage() {
     const [uploadingPicture, setUploadingPicture] = useState(false);
     const pictureInputRef = useRef<HTMLInputElement>(null);
 
-    // 각 자산의 대표 사진 ID 저장 (assetId -> pictureId)
-    const [assetMainPictures, setAssetMainPictures] = useState<Record<number, number | null>>({});
-
     // 동아리 멤버 상태
     const [clubMembers, setClubMembers] = useState<ClubMember[]>([]);
     const [membersLoading, setMembersLoading] = useState(true);
@@ -232,30 +192,6 @@ export function AdminDashboardPage() {
         }
         setAssetsLoading(false);
     };
-
-    // 개별 자산의 대표 사진 로드 (Intersection Observer용)
-    const loadAssetMainPicture = useCallback(async (assetId: number) => {
-        let shouldFetch = false;
-
-        // 이미 로드했거나 로딩 중이면 스킵, 아니면 로딩 중 표시 (null로 설정)
-        setAssetMainPictures(prev => {
-            if (prev[assetId] !== undefined) {
-                return prev;
-            }
-            shouldFetch = true;
-            return { ...prev, [assetId]: null };
-        });
-
-        if (!shouldFetch) {
-            return;
-        }
-
-        const picturesResult = await getAssetPictures(assetId);
-        if (picturesResult.success && picturesResult.data) {
-            const mainPic = picturesResult.data.find(p => p.is_main);
-            setAssetMainPictures(prev => ({ ...prev, [assetId]: mainPic ? mainPic.id : null }));
-        }
-    }, []);
 
     // 대여 현황 가져오기 함수
     const fetchSchedules = async (clubId: number, status?: string) => {
@@ -705,27 +641,26 @@ export function AdminDashboardPage() {
         });
     };
 
+    const refreshAssetsList = async () => {
+        if (myClubId) {
+            const result = await getAssets(myClubId);
+            if (result.success && result.data) {
+                setAssets(result.data);
+            }
+        }
+    };
+
     // 사진 업로드 핸들러
     const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !expandedAssetId) return;
 
-        // 이미지 파일 검증
-        if (!file.type.startsWith('image/')) {
-            setError('이미지 파일만 업로드 가능합니다.');
-            return;
-        }
-
         setUploadingPicture(true);
-
         try {
-            // 이미지 압축 (500KB 이상인 경우에만)
             let uploadFile = file;
-            if (file.size > 500 * 1024) {
-                uploadFile = await compressImage(file);
-            }
+            if (file.size > 500 * 1024) uploadFile = await compressImage(file);
 
-            const isMain = assetPictures.length === 0; // 첫 번째 사진은 자동으로 대표 설정
+            const isMain = assetPictures.length === 0;
             const result = await addAssetPicture(expandedAssetId, uploadFile, isMain);
 
             if (result.success) {
@@ -733,66 +668,42 @@ export function AdminDashboardPage() {
                 const picturesResult = await getAssetPictures(expandedAssetId);
                 if (picturesResult.success && picturesResult.data) {
                     setAssetPictures(picturesResult.data);
-
-                    const newMain = picturesResult.data.find(p => p.is_main) || picturesResult.data[0];
-                setAssetMainPictures(prev => ({ 
-                ...prev, 
-                [expandedAssetId]: newMain ? newMain.id : null 
-            }));
                 }
+                // 4. 수정: assetMainPictures 업데이트 대신 전체 자산 목록 갱신
+                refreshAssetsList();
             } else {
                 setError(result.error || '사진 업로드에 실패했습니다.');
             }
         } catch (err) {
-            console.error('Image compression error:', err);
+            console.error('Picture upload error:', err); 
             setError('이미지 처리 중 오류가 발생했습니다.');
         }
-
         setUploadingPicture(false);
-
-        // input 초기화
-        if (pictureInputRef.current) {
-            pictureInputRef.current.value = '';
-        }
     };
 
-    // 대표 사진 설정 핸들러
     const handleSetMainPicture = async (pictureId: number) => {
         if (!expandedAssetId) return;
-
         const result = await setMainPicture(expandedAssetId, pictureId);
         if (result.success) {
-            // 사진 목록 새로고침
             const picturesResult = await getAssetPictures(expandedAssetId);
             if (picturesResult.success && picturesResult.data) {
                 setAssetPictures(picturesResult.data);
-
-                setAssetMainPictures(prev => ({ 
-                ...prev, 
-                [expandedAssetId]: pictureId 
-            }));
             }
+            // 5. 수정: 대표 사진 설정 후 목록 갱신
+            refreshAssetsList();
         } else {
             setError(result.error || '대표 사진 설정에 실패했습니다.');
         }
     };
 
-    // 사진 삭제 핸들러
     const handleDeletePicture = async (pictureId: number) => {
         if (!expandedAssetId) return;
         if (!confirm('이 사진을 삭제하시겠습니까?')) return;
-
         const result = await deleteAssetPicture(expandedAssetId, pictureId);
         if (result.success) {
             setAssetPictures(prev => prev.filter(p => p.id !== pictureId));
-
-            setAssetMainPictures(prev => {
-            if (prev[expandedAssetId] === pictureId) {
-                return { ...prev, [expandedAssetId]: null };
-        } else {
-            return prev;
-        }
-    });
+            // 6. 수정: 사진 삭제 후 목록 갱신 (삭제된 사진이 대표였을 수 있으므로)
+            refreshAssetsList();
         } else {
             setError(result.error || '사진 삭제에 실패했습니다.');
         }
@@ -1086,8 +997,6 @@ export function AdminDashboardPage() {
                                                     key={asset.id}
                                                     asset={asset}
                                                     isExpanded={expandedAssetId === asset.id}
-                                                    mainPictureId={assetMainPictures[asset.id]}
-                                                    onLoadPicture={loadAssetMainPicture}
                                                     onClick={() => handleAssetClick(asset)}
                                                     editingAsset={editingAsset}
                                                     statsLoading={statsLoading}

@@ -925,6 +925,7 @@ export interface Asset {
     location: string;
     created_at: string;
     max_rental_days?: number;
+    main_picture?: number;
 }
 
 // 자산 목록 조회 (GET /api/assets/{club_id}) - 인증 불필요
