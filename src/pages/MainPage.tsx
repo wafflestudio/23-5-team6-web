@@ -75,7 +75,6 @@ export function MainPage() {
                                 padding: '1rem 2rem', 
                                 fontSize: '1.1rem', 
                                 width: 'min(100%, 250px)',
-                                border: '2px solid #5979BA'
                             }}
                         >
                             신규 가입하기
