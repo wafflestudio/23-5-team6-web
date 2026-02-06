@@ -81,7 +81,6 @@ export function ReturnDetailPage() {
     const [isCompressing, setIsCompressing] = useState(false);
     const item = locationState?.item;
     const [isLocating, setIsLocating] = useState(false);
-    const [isLocationValid, setIsLocationValid] = useState(false);
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -254,7 +253,6 @@ export function ReturnDetailPage() {
 
         if (!clubData.location_lat || !clubData.location_lng) {
             console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
-            setIsLocationValid(true); // OK 사인!
             setIsLocating(false);
             return;
         }
@@ -276,10 +274,8 @@ export function ReturnDetailPage() {
 
                 if (distance > 15) {
                     alert(`⚠️ 거리가 너무 멉니다! (현재 거리: ${distance.toFixed(1)}m)\n15m 이내에서 다시 시도해주세요.`);
-                    setIsLocationValid(false);
                 } else {
                     alert('✅ 위치 인증에 성공했습니다!');
-                    setIsLocationValid(true); // OK 사인!
                 }
                 setIsLocating(false);
             },

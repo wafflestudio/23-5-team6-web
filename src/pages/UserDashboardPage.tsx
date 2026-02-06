@@ -10,20 +10,6 @@ interface LocationState {
     tab?: TabType;
 }
 
-export const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) {
-        return '날짜 정보 없음';
-    }
-    return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-};
-
 export function UserDashboardPage() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -179,21 +165,6 @@ export function UserDashboardPage() {
         } else {
             alert(result.error || '탈퇴에 실패했습니다.');
         }
-    };
-
-    // Haversine 공식으로 두 GPS 좌표 사이 거리 계산 (미터 단위)
-    const calculateDistance = (
-        lat1: number, lng1: number,
-        lat2: number, lng2: number
-    ): number => {
-        const R = 6371000; // 지구 반지름 (미터)
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng / 2) ** 2;
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
     };
 
     // 반납 핸들러 - ReturnDetailPage로 이동 (사진 업로드 필수)
