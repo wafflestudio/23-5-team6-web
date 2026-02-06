@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { returnItem, type Schedule } from '@/api/client';
+import { returnItem } from '@/api/client';
 import { getClub } from '@/api/client';
-import { formatDate } from '@/pages/UserDashboardPage';
 import '@/styles/App.css';
 
 
