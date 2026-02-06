@@ -239,7 +239,7 @@ export function ReturnDetailPage() {
         }
 
         try {
-            setIsLocating
+            setIsLocating(true);
             setIsLocationVerified(false);
 
             const clubResult = await getClub(item.clubId);
