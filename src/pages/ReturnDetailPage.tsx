@@ -132,10 +132,10 @@ export function ReturnDetailPage() {
         }
     };
 
-    const executeReturnAction = async (file: File) => {
+    const executeReturnAction = async (file: File, location: { lat: number; lng: number }) => {
         if (!rentalId) return;
         try {
-            const result = await returnItem(rentalId, file);
+            const result = await returnItem(rentalId, file, location);
             if (result.success) {
                 alert('반납이 성공적으로 완료되었습니다!');
                 navigate('/user/dashboard', { state: { tab: 'borrowed' }, replace: true });
@@ -158,11 +158,17 @@ export function ReturnDetailPage() {
             return;
         }
 
+        // GPS 지원 확인
+        if (!navigator.geolocation) {
+            alert('이 브라우저에서는 GPS를 지원하지 않습니다.');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
 
             // 1. 동아리 정보 조회 (GPS 좌표 확인용)
-            const clubResult = await getClub(item.clubId); //
+            const clubResult = await getClub(item.clubId);
             if (!clubResult.success || !clubResult.data) {
                 alert('동아리 위치 정보를 확인할 수 없습니다.');
                 setIsSubmitting(false);
@@ -171,37 +177,29 @@ export function ReturnDetailPage() {
 
             const clubData = clubResult.data;
 
-            // 동아리 GPS 정보가 없는 경우 사진만으로 반납 진행
-            if (!clubData.location_lat || !clubData.location_lng) {
-                await executeReturnAction(selectedFile);
-                return;
-            }
-
-            const clubLat = clubData.location_lat / 1000000;
-            const clubLng = clubData.location_lng / 1000000;
-
-            // 2. 현재 사용자 위치 조회 및 거리 비교
-            if (!navigator.geolocation) {
-                alert('이 브라우저에서는 GPS를 지원하지 않습니다.');
-                setIsSubmitting(false);
-                return;
-            }
-
+            // 2. 현재 사용자 위치 조회
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
-                    const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
 
-                    // 15m 거리 제한 검증
-                    if (distance > 15) {
-                        alert(`⚠️ 위치 인증 실패: 동아리방에서 너무 멉니다.\n현재 거리: ${distance.toFixed(1)}m (제한: 15m)`);
-                        setIsSubmitting(false);
-                        return;
+                    // 동아리 위치가 설정되어 있는 경우에만 거리 검증
+                    if (clubData.location_lat && clubData.location_lng) {
+                        const clubLat = clubData.location_lat / 1000000;
+                        const clubLng = clubData.location_lng / 1000000;
+                        const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
+
+                        // 15m 거리 제한 검증
+                        if (distance > 15) {
+                            alert(`⚠️ 위치 인증 실패: 동아리방에서 너무 멉니다.\n현재 거리: ${distance.toFixed(1)}m (제한: 15m)`);
+                            setIsSubmitting(false);
+                            return;
+                        }
                     }
 
-                    // 3. 최종 반납 진행
-                    await executeReturnAction(selectedFile);
+                    // 3. 최종 반납 진행 (위치 정보 필수 전달)
+                    await executeReturnAction(selectedFile, { lat: userLat, lng: userLng });
+                    setIsSubmitting(false);
                 },
                 (error) => {
                     console.error('GPS 에러:', error);
@@ -234,64 +232,64 @@ export function ReturnDetailPage() {
 
     // src/pages/ReturnDetailPage.tsx 내부
     const handleReturnItem = async () => {
-    if (!rentalId || !item) {
-        alert('대여 정보를 확인할 수 없습니다.');
-        return;
-    }
-
-    try {
-        setIsLocating(true); // 로딩 시작
-
-        const clubResult = await getClub(item.clubId);
-        if (!clubResult.success || !clubResult.data) {
-            alert('동아리 정보를 불러올 수 없습니다.');
-            setIsLocating(false);
+        if (!rentalId || !item) {
+            alert('대여 정보를 확인할 수 없습니다.');
             return;
         }
 
-        const clubData = clubResult.data;
+        try {
+            setIsLocating(true); // 로딩 시작
 
-        if (!clubData.location_lat || !clubData.location_lng) {
-            console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
-            setIsLocating(false);
-            return;
-        }
-
-        // 위치 정보가 있는 경우에만 GPS 검사 진행
-        if (!navigator.geolocation) {
-            alert('GPS를 지원하지 않는 브라우저입니다.');
-            setIsLocating(false);
-            return;
-        }
-
-        const clubLat = clubData.location_lat / 1000000;
-        const clubLng = clubData.location_lng / 1000000;
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude: userLat, longitude: userLng } = position.coords;
-                const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
-
-                if (distance > 15) {
-                    alert(`⚠️ 거리가 너무 멉니다! (현재 거리: ${distance.toFixed(1)}m)\n15m 이내에서 다시 시도해주세요.`);
-                } else {
-                    alert('✅ 위치 인증에 성공했습니다!');
-                }
+            const clubResult = await getClub(item.clubId);
+            if (!clubResult.success || !clubResult.data) {
+                alert('동아리 정보를 불러올 수 없습니다.');
                 setIsLocating(false);
-            },
-            (error) => {
-                console.error('GPS 에러:', error);
-                alert('위치 정보를 가져올 수 없습니다. 권한을 확인해주세요.');
-                setIsLocating(false);
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
+                return;
+            }
 
-    } catch (err) {
-        console.error(err);
-        setIsLocating(false);
-    }
-};
+            const clubData = clubResult.data;
+
+            if (!clubData.location_lat || !clubData.location_lng) {
+                console.log("동아리 위치 정보가 없어 인증을 생략합니다.");
+                setIsLocating(false);
+                return;
+            }
+
+            // 위치 정보가 있는 경우에만 GPS 검사 진행
+            if (!navigator.geolocation) {
+                alert('GPS를 지원하지 않는 브라우저입니다.');
+                setIsLocating(false);
+                return;
+            }
+
+            const clubLat = clubData.location_lat / 1000000;
+            const clubLng = clubData.location_lng / 1000000;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude: userLat, longitude: userLng } = position.coords;
+                    const distance = calculateDistance(userLat, userLng, clubLat, clubLng);
+
+                    if (distance > 15) {
+                        alert(`⚠️ 거리가 너무 멉니다! (현재 거리: ${distance.toFixed(1)}m)\n15m 이내에서 다시 시도해주세요.`);
+                    } else {
+                        alert('✅ 위치 인증에 성공했습니다!');
+                    }
+                    setIsLocating(false);
+                },
+                (error) => {
+                    console.error('GPS 에러:', error);
+                    alert('위치 정보를 가져올 수 없습니다. 권한을 확인해주세요.');
+                    setIsLocating(false);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+
+        } catch (err) {
+            console.error(err);
+            setIsLocating(false);
+        }
+    };
 
 
     if (!item) {
@@ -314,10 +312,10 @@ export function ReturnDetailPage() {
                     <div className="asset-info-section" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                         <div className="asset-image-placeholder" style={{ width: '120px', height: '120px', borderRadius: '20px', fontSize: '3rem', background: '#f8f9fa' }}>
                             {item.image ? (
-                                <img 
-                                    src={item.image} 
-                                    alt={item.name} 
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                             ) : (
                                 '📦'
@@ -377,10 +375,10 @@ export function ReturnDetailPage() {
                 <div className="card-actions" style={{ marginTop: '15px' }}>
                     <button
                         // 인자 없이 호출하도록 수정
-                        onClick={handleReturnItem} 
+                        onClick={handleReturnItem}
                         className="primary-btn"
                         // isLocating을 불리언(true/false)으로 관리한다면 아래와 같이 수정
-                        disabled={isLocating} 
+                        disabled={isLocating}
                         style={{
                             width: '100%',
                             // schedule.id 대신 item.id 사용

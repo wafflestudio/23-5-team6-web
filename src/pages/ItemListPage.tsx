@@ -6,7 +6,6 @@ import '@/styles/App.css';
 const ITEMS_PER_PAGE = 10;
 
 export function ItemListPage() {
-    const [refreshKey, setRefreshKey] = useState(0);
     const { clubId } = useParams<{ clubId: string }>();
     const navigate = useNavigate();
 
@@ -41,7 +40,7 @@ export function ItemListPage() {
         };
 
         fetchAssets();
-    }, [clubIdNum, isValidClubId, refreshKey]);
+    }, [clubIdNum, isValidClubId]);
 
     // 대여 버튼 클릭 핸들러
     const handleRentClick = (asset: Asset) => {
@@ -74,7 +73,8 @@ export function ItemListPage() {
         const result = await borrowItem(selectedAsset.id, returnDate);
         if (result.success) {
             setIsModalOpen(false);
-            setRefreshKey(prev => prev + 1); // 목록 새로고침
+            // 대여 성공 후 대여이력 탭으로 이동 (새 대여가 바로 보이도록)
+            navigate('/user/dashboard', { state: { tab: 'borrowed' } });
         }
     };
 
