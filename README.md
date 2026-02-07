@@ -25,9 +25,9 @@
 
 ## 3. 👨‍👩‍👦‍👦 개발자 소개
 | 이름 | 역할 | 담당 기능 및 기술적 기여 |
+| :--- | :---: | :--- |
 | [**맹준호**](https://github.com/s3mng) | Frontend | - React 기반 프론트엔드 아키텍처 및 공통 컴포넌트 설계<br>- 소셜 로그인 및 GPS 위치 기반 반납 인터페이스 구현<br>- AWS Lambda 연동을 통한 연체 안내 이메일 전송 시스템 구축 |
 | [**임효리**](https://github.com/alinwinskingsleigh-svg) | Frontend | - 엑셀 기반 자산 업로드 및 다운로드 기능 구현 <br>- 자산 대여 반납 기능 구현 <br>  |
-| :--- | :---: | :--- |
 | [**김찬우**](https://github.com/swfs0417) | Backend | - JWT 기반 인증 시스템 구축 (Access/Refresh Token, argon2 해싱)<br>- 대여/멤버 CRUD API 및 권한 관리 로직 설계<br>- 통계 API 개발 및 CSV 대량 업로드 시스템 구현<br>- DB 스키마 설계 및 CI/CD 파이프라인 구축 |
 | [**남현석**](https://github.com/seaotter316) | Backend | - 자산 CRUD API 및 자산 이미지 업로드 기능 구현<br>- 대여/반납 로직 내 동시 요청 충돌 방지(Concurrency Control) 처리<br>- AWS 기반 인프라 구축(EC2, RDS) 및 서비스 환경 최적화<br>- 도메인 구매 및 DNS 설정을 통한 서비스 연결 |
 | [**전동주**](https://github.com/djeon21) | Backend | - 동아리 CRUD 및 Haversine 공식을 활용한 위치 정보 처리 개발<br>- 운영자 전용 회원가입/로그인 및 관리 기능 백엔드 설계<br>- 구글 소셜 로그인 (Auth Code Flow + PKCE) 보안 로직 구현 |
