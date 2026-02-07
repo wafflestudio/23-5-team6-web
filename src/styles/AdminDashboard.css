@@ -1,4 +1,17 @@
 /* Admin Dashboard Styles */
+:root {
+  --primary-color: #5979BA;
+  --primary-hover: #4a6aa8;
+  --accent-color: #8CCEE3;
+  --accent-hover: #31ADD4;
+  --text-color: #2E3D57;
+  --text-dark: #2E3D57;
+  --bg-color: #FFFFFF;
+  --gray-200: #e5e7eb;
+  --gray-500: #6b7280;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(89, 121, 186, 0.25);
+}
 
 .admin-dashboard {
     padding-top: calc(4.5rem + env(safe-area-inset-top));
@@ -6,7 +19,7 @@
 
 /* Club Info Banner */
 .club-info-banner {
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
     padding: 1.25rem 1.5rem;
     background: linear-gradient(135deg, var(--primary-color), #6366f1);
     border-radius: 16px;
@@ -111,7 +124,8 @@
 }
 
 .upload-btn {
-    background: #2E3D57
+    background: var(--text-color);
+    color: white;
 }
 
 
@@ -119,8 +133,7 @@
     margin-left: auto;
     padding: 0.6rem 0.8rem;
     min-width: 90px;
-    background: var(--text-color);
-    color: white;
+    background: var(--accent-color);
     border: none;
     border-radius: 8px;
     font-size: 0.85rem;
@@ -133,6 +146,7 @@
 .member-approve-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
+    background: var(--accent-hover);
 }
 
 /* Asset List */
