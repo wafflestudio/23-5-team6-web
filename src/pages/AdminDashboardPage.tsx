@@ -891,7 +891,7 @@ export function AdminDashboardPage() {
                                             border: '1px solid rgba(99, 102, 241, 0.2)'
                                         }}>
                                             <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
-                                                📋 엑셀/CSV 파일 형식: <strong>name, description, quantity, location, total_quantity, available_quantity, created_at</strong>
+                                                📋 엑셀 파일 형식: <strong>물품명, 설명, 수량, 위치, 전체 수량, 사용가능수량, 등록일</strong>
                                             </p>
                                             <button
                                                 type="button"
@@ -917,7 +917,7 @@ export function AdminDashboardPage() {
                                                 accept=".xlsx"
                                                 onChange={handleFileChange}
                                                 disabled={isUploading}
-                                                style={{ padding: '10px 0' }}
+                                                style={{ padding: '10px 13px' }}
                                             />
                                         </div>
                                         <div style={{ marginBottom: '20px', textAlign: 'right' }}>
