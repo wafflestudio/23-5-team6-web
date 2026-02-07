@@ -94,10 +94,10 @@
 <img src="./src/assets/8. 운영자 자산 관리.png" width="600">
 
 9. **운영자 물품 추가**: 단일 물품 등록뿐만 아니라 엑셀 대장 업로드를 통한 대량 등록 모달을 포함합니다.
-<img src="./src/assets/9. 운영자 물품 추가.png.png" width="600">
+<img src="./src/assets/9. 운영자 물품 추가.png" width="600">
 
 10. **운영자 대여 현황**: 동아리 전체의 대여/반납/연체 현황을 한눈에 파악합니다.
-<img src="./src/assets/10. 운영자 대여 현황.png" width="600">
+<img src="./src/assets/10. 운영자 대여현황.png" width="600">
 
 11. **운영자 멤버 관리**: 동아리에 가입된 멤버 목록을 관리하고 권한을 조정하거나 삭제합니다.
 <img src="./src/assets/11. 운영자 멤버 관리.png" width="600">
